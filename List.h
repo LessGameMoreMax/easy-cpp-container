@@ -250,8 +250,8 @@ bool operator!=(const ListNegativeIterator<T> &rhs,const ListNegativeIterator<T>
 template <typename T>
 class List{
 public:
-	typedef T 	   						 element_type;
-	typedef size_t 						 number_type;
+	typedef T 	   						     element_type;
+	typedef size_t 						     number_type;
 	typedef valerij::ListPositiveIterator<T> positive_iterator;
 	typedef valerij::ListNegativeIterator<T> negative_iterator;
 	
@@ -264,13 +264,17 @@ public:
 	}
 	//Debug--------------------------------------------------------
 private:
-	number_type            element_size_;
+	number_type                element_size_;
 	valerij::ListNode<T> 	  *head_node_;
 	valerij::ListNode<T> 	  *tail_node_;
 	
+	valerij::ListNode<T>      *beyond_head_node_;
+	valerij::ListNode<T>	  *beyond_tail_node_;
+	
+	void Initialize();
+	void ReleaseResource();
 public:
-	List() : element_size_(0),head_node_(nullptr),
-			 tail_node_(nullptr){}
+	List();
 	explicit List(const number_type,const T&);
 	explicit List(std::initializer_list<T>);
 	template <typename Iterator>
@@ -331,18 +335,50 @@ public:
 };
 
 template <typename T>
+void List<T>::Initialize(){
+	element_size_ = 0;
+	beyond_head_node_ = new valerij::ListNode<T>();
+	beyond_tail_node_ = new valerij::ListNode<T>();
+	head_node_ = nullptr;
+	tail_node_ = nullptr;
+	beyond_head_node_->next_node_ = beyond_tail_node_;
+	beyond_tail_node_->last_node_ = beyond_head_node_;
+}
+
+template <typename T>
+void List<T>::ReleaseResource(){
+	while(beyond_head_node_ != nullptr){
+		valerij::ListNode<T> *temp = beyond_head_node_;
+		beyond_head_node_ = beyond_head_node_->next_node_;
+		delete temp;
+	}
+	head_node_ = tail_node_ = beyond_head_node_ = beyond_tail_node_ = nullptr;
+	element_size_ = 0;
+}
+
+template <typename T>
+List<T>::List() { Initialize();}
+
+template <typename T>
 List<T>::List(const number_type size,const T &element){
 	if(size == 0) throw new std::runtime_error("Size Wrong ---- List(size,element)");
+	this->Initialize();
 	for(number_type i = 0;i != size; ++i){
 		valerij::ListNode<T> *temp_node = new valerij::ListNode<T>();
 		temp_node->element_pointer_ = new T(element);
 		if(i == 0){
 			head_node_ = temp_node;
 			tail_node_ = temp_node;
+			beyond_head_node_->next_node_ = head_node_;
+			head_node_->last_node_ = beyond_head_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
+			tail_node_->next_node_ = beyond_tail_node_;
 		}else{
 			tail_node_->next_node_ = temp_node;
 			temp_node->last_node_  = tail_node_;
 			tail_node_ = temp_node;
+			tail_node_->next_node_ = beyond_tail_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
 		}
 	}
 	element_size_ = size;
@@ -352,16 +388,23 @@ template <typename T>
 List<T>::List(std::initializer_list<T> list){
 	number_type size = list.size();
 	if(size == 0) throw new std::runtime_error("Size Wrong ----- List(initializer_list)");
+	this->Initialize();
 	for(number_type i = 0;i != size; ++i){
 		valerij::ListNode<T> *temp_node = new valerij::ListNode<T>();
 		temp_node->element_pointer_ = new T(*(list.begin() + i));
 		if(i == 0){
 			head_node_ = temp_node;
 			tail_node_ = temp_node;
+			beyond_head_node_->next_node_ = head_node_;
+			head_node_->last_node_ = beyond_head_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
+			tail_node_->next_node_ = beyond_tail_node_;
 		}else{
 			tail_node_->next_node_ = temp_node;
 			temp_node->last_node_  = tail_node_;
 			tail_node_ = temp_node;
+			tail_node_->next_node_ = beyond_tail_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
 		}
 	}
 	element_size_ = size;
@@ -373,33 +416,49 @@ List<T>::List(const Iterator first_iterator,const Iterator second_iterator){
 	for(Iterator temp_iterator = first_iterator;temp_iterator != second_iterator;++temp_iterator)	
 		++element_size_;
 	
+	this->Initialize();
+	
 	for(Iterator temp_iterator = first_iterator;temp_iterator != second_iterator;++temp_iterator){
 		valerij::ListNode<T> *temp_node = new valerij::ListNode<T>();
 		temp_node->element_pointer_ = new T(*temp_iterator);
 		if(temp_iterator == first_iterator){
 			head_node_ = temp_node;
 			tail_node_ = temp_node;
+			beyond_head_node_->next_node_ = head_node_;
+			head_node_->last_node_ = beyond_head_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
+			tail_node_->next_node_ = beyond_tail_node_;
 		}else{
 			tail_node_->next_node_ = temp_node;
 			temp_node->last_node_  = tail_node_;
 			tail_node_ = temp_node;
+			tail_node_->next_node_ = beyond_tail_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
 		}
 	}
 }
 
 template <typename T>
 List<T>::List(const List<T> &another){
+	this->Initialize();
 	element_size_ = another.element_size_;
-	for(valerij::ListNode<T> *temp = another.head_node_;temp != nullptr;temp = temp->next_node_){
+	for(valerij::ListNode<T> *temp = another.beyond_tail_node_->next_node_;
+			temp != another.beyond_tail_node_;temp = temp->next_node_){
 		valerij::ListNode<T> *temp_node = new valerij::ListNode<T>();
 		temp_node->element_pointer_ = new T(*(temp->element_pointer_));
 		if(temp == another.head_node_){
 			head_node_ = temp_node;
 			tail_node_ = temp_node;
+			beyond_head_node_->next_node_ = head_node_;
+			head_node_->last_node_ = beyond_head_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
+			tail_node_->next_node_ = beyond_tail_node_;
 		}else{
 			tail_node_->next_node_ = temp_node;
 			temp_node->last_node_  = tail_node_;
 			tail_node_ = temp_node;
+			tail_node_->next_node_ = beyond_tail_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
 		}
 	}
 }
@@ -409,9 +468,10 @@ List<T>::List(List<T> &&another){
 	element_size_ = another.element_size_;
 	head_node_ = another.head_node_;
 	tail_node_ = another.tail_node_;
+	beyond_head_node_ = another.beyond_head_node_;
+	beyond_tail_node_ = another.beyond_tail_node_;
 	
-	another.element_size_ = 0;
-	another.head_node_ = another.tail_node_ = nullptr;
+	another.Initialize();
 }
 
 template <typename T>
@@ -419,16 +479,23 @@ List<T>& List<T>::operator=(const List &another){
 	if(&another == this) return *this;
 	this->Clear();
 	element_size_ = another.element_size_;
-	for(valerij::ListNode<T> *temp = another.head_node_;temp != nullptr;temp = temp->next_node_){
+	for(valerij::ListNode<T> *temp = another.beyond_tail_node_->next_node_;
+		temp != another.beyond_tail_node_;temp = temp->next_node_){
 		valerij::ListNode<T> *temp_node = new valerij::ListNode<T>();
 		temp_node->element_pointer_ = new T(*(temp->element_pointer_));
 		if(temp == another.head_node_){
 			head_node_ = temp_node;
 			tail_node_ = temp_node;
+			beyond_head_node_->next_node_ = head_node_;
+			head_node_->last_node_ = beyond_head_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
+			tail_node_->next_node_ = beyond_tail_node_;
 		}else{
 			tail_node_->next_node_ = temp_node;
 			temp_node->last_node_  = tail_node_;
 			tail_node_ = temp_node;
+			tail_node_->next_node_ = beyond_tail_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
 		}
 	}
 	return *this;
@@ -441,30 +508,22 @@ List<T>& List<T>::operator=(List &&another){
 	element_size_ = another.element_size_;
 	head_node_ = another.head_node_;
 	tail_node_ = another.tail_node_;
+	beyond_head_node_ = another.beyond_head_node_;
+	beyond_tail_node_ = another.beyond_tail_node_;
 	
-	another.element_size_ = 0;
-	another.head_node_ = another.tail_node_ = nullptr;
+	another.Initialize();
 	return *this;
 }
 
 template <typename T>
 List<T>::~List<T>(){
-	this->Clear();
+	this->ReleaseResource();
 }
 
 template <typename T>
 void List<T>::Clear() noexcept {
-	while(head_node_ != nullptr){
-		if(head_node_->next_node_ != nullptr){
-			head_node_ = head_node_->next_node_;
-			delete head_node_->last_node_;
-		}else{
-			delete head_node_;
-			head_node_ = nullptr;
-		}
-	}
-	tail_node_ = nullptr;
-	element_size_ = 0;
+	this->ReleaseResource();
+	this->Initialize();
 }
 
 template <typename T>
@@ -474,7 +533,7 @@ typename List<T>::positive_iterator List<T>::Begin() noexcept{
 
 template <typename T>
 typename List<T>::positive_iterator List<T>::End() noexcept{
-	return valerij::ListPositiveIterator<T>(nullptr);
+	return valerij::ListPositiveIterator<T>(beyond_tail_node_);
 }
 
 template <typename T>
@@ -484,7 +543,7 @@ typename List<T>::negative_iterator List<T>::RBegin() noexcept{
 
 template <typename T>
 typename List<T>::negative_iterator List<T>::REnd() noexcept{
-	return valerij::ListNegativeIterator<T>(nullptr);
+	return valerij::ListNegativeIterator<T>(beyond_head_node_);
 }
 
 template <typename T>
@@ -509,18 +568,24 @@ T List<T>::Back() const{
 
 template <typename T>
 void List<T>::Assign(const number_type size,const T &element){
-	this->Clear();
 	if(size == 0) throw new std::runtime_error("Size Wrong ---- Assign(size,element)");
+	this->Clear();
 	for(number_type i = 0;i != size; ++i){
 		valerij::ListNode<T> *temp_node = new valerij::ListNode<T>();
 		temp_node->element_pointer_ = new T(element);
 		if(i == 0){
 			head_node_ = temp_node;
 			tail_node_ = temp_node;
+			beyond_head_node_->next_node_ = head_node_;
+			head_node_->last_node_ = beyond_head_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
+			tail_node_->next_node_ = beyond_tail_node_;
 		}else{
 			tail_node_->next_node_ = temp_node;
 			temp_node->last_node_  = tail_node_;
 			tail_node_ = temp_node;
+			tail_node_->next_node_ = beyond_tail_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
 		}
 	}
 	element_size_ = size;
@@ -528,19 +593,25 @@ void List<T>::Assign(const number_type size,const T &element){
 
 template <typename T>
 void List<T>::Assign(std::initializer_list<T> list){
-	this->Clear();
 	number_type size = list.size();
 	if(size == 0) throw new std::runtime_error("Size Wrong ----- List(initializer_list)");
+	this->Clear();
 	for(number_type i = 0;i != size; ++i){
 		valerij::ListNode<T> *temp_node = new valerij::ListNode<T>();
 		temp_node->element_pointer_ = new T(*(list.begin() + i));
 		if(i == 0){
 			head_node_ = temp_node;
 			tail_node_ = temp_node;
+			beyond_head_node_->next_node_ = head_node_;
+			head_node_->last_node_ = beyond_head_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
+			tail_node_->next_node_ = beyond_tail_node_;
 		}else{
 			tail_node_->next_node_ = temp_node;
 			temp_node->last_node_  = tail_node_;
 			tail_node_ = temp_node;
+			tail_node_->next_node_ = beyond_tail_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
 		}
 	}
 	element_size_ = size;
@@ -549,9 +620,9 @@ void List<T>::Assign(std::initializer_list<T> list){
 template <typename T>
 template <typename Iterator>
 void List<T>::Assign(const Iterator first_iterator,const Iterator second_iterator){
-	this->Clear();
 	for(Iterator temp_iterator = first_iterator;temp_iterator != second_iterator;++temp_iterator)	
 		++element_size_;
+	this->Clear();
 	
 	for(Iterator temp_iterator = first_iterator;temp_iterator != second_iterator;++temp_iterator){
 		valerij::ListNode<T> *temp_node = new valerij::ListNode<T>();
@@ -559,10 +630,16 @@ void List<T>::Assign(const Iterator first_iterator,const Iterator second_iterato
 		if(temp_iterator == first_iterator){
 			head_node_ = temp_node;
 			tail_node_ = temp_node;
+			beyond_head_node_->next_node_ = head_node_;
+			head_node_->last_node_ = beyond_head_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
+			tail_node_->next_node_ = beyond_tail_node_;
 		}else{
 			tail_node_->next_node_ = temp_node;
 			temp_node->last_node_  = tail_node_;
 			tail_node_ = temp_node;
+			tail_node_->next_node_ = beyond_tail_node_;
+			beyond_tail_node_->last_node_ = tail_node_;
 		}
 	}	
 }
@@ -574,6 +651,10 @@ void List<T>::PushFront(const T &element){
 		head_node_ = new valerij::ListNode<T>();
 		head_node_->element_pointer_ = new T(element);
 		tail_node_ = head_node_;
+		head_node_->last_node_ = beyond_head_node_;
+		head_node_->next_node_ = beyond_tail_node_;
+		beyond_head_node_->next_node_ = head_node_;
+		beyond_tail_node_->last_node_ = head_node_;
 		return;
 	}
 	
@@ -581,6 +662,8 @@ void List<T>::PushFront(const T &element){
 	temp->element_pointer_ = new T(element);
 	head_node_->last_node_ = temp;
 	temp->next_node_ = head_node_;
+	temp->last_node_ = beyond_head_node_;
+	beyond_head_node_->next_node_ = temp;
 	head_node_ = temp;
 }
 
@@ -591,13 +674,19 @@ void List<T>::PushFront(T &&element){
 		head_node_ = new valerij::ListNode<T>();
 		head_node_->element_pointer_ = new T(std::move(element));
 		tail_node_ = head_node_;
+		head_node_->last_node_ = beyond_head_node_;
+		head_node_->next_node_ = beyond_tail_node_;
+		beyond_head_node_->next_node_ = head_node_;
+		beyond_tail_node_->last_node_ = head_node_;
 		return;
 	}
 	
 	valerij::ListNode<T>* temp = new valerij::ListNode<T>();
-	temp->element_pointer_ = new T(element);
+	temp->element_pointer_ = new T(std::move(element));
 	head_node_->last_node_ = temp;
 	temp->next_node_ = head_node_;
+	temp->last_node_ = beyond_head_node_;
+	beyond_head_node_->next_node_ = temp;
 	head_node_ = temp;
 }
 
@@ -606,46 +695,47 @@ void List<T>::PopFront(){
 	if(head_node_ == nullptr)
 		throw new std::runtime_error("No Element ---- PopFront()");
 	
-	if(element_size_ == 1) this->Clear();
+	if(element_size_ == 1) {this->Clear(); return;}
 	
 	--element_size_;
 	head_node_ = head_node_->next_node_;
 	delete head_node_->last_node_;
-	head_node_->last_node_ = nullptr;
+	head_node_->last_node_ = beyond_head_node_;
+	beyond_head_node_->next_node_ = head_node_;
 }
 
 template <typename T>
 void List<T>::PushBack(const T &element){
-	++element_size_;
 	if(head_node_ == nullptr){
-		head_node_ = new valerij::ListNode<T>();
-		head_node_->element_pointer_ = new T(element);
-		tail_node_ = head_node_;
+		this->PushFront(element);
 		return;
 	}
+	++element_size_;
 	
 	valerij::ListNode<T>* temp = new valerij::ListNode<T>();
 	temp->element_pointer_ = new T(element);
 	tail_node_->next_node_ = temp;
 	temp->last_node_ = tail_node_;
 	tail_node_ = temp;
+	temp->next_node_ = beyond_tail_node_;
+	beyond_tail_node_->last_node_ = temp;
 }
 
 template <typename T>
 void List<T>::PushBack(T &&element){
-	++element_size_;
 	if(head_node_ == nullptr){
-		head_node_ = new valerij::ListNode<T>();
-		head_node_->element_pointer_ = new T(std::move(element));
-		tail_node_ = head_node_;
+		this->PushFront(std::move(element));
 		return;
 	}
+	++element_size_;
 	
 	valerij::ListNode<T>* temp = new valerij::ListNode<T>();
-	temp->element_pointer_ = new T(element);
+	temp->element_pointer_ = new T(std::move(element));
 	tail_node_->next_node_ = temp;
 	temp->last_node_ = tail_node_;
 	tail_node_ = temp;
+	temp->next_node_ = beyond_tail_node_;
+	beyond_tail_node_->last_node_ = temp;
 }
 
 template <typename T>
@@ -653,12 +743,13 @@ void List<T>::PopBack(){
 	if(tail_node_ == nullptr)
 		throw new std::runtime_error("No Element ---- PopFront()");
 	
-	if(element_size_ == 1) this->Clear();
+	if(element_size_ == 1) {this->Clear(); return;}
 	
 	--element_size_;
 	tail_node_ = tail_node_->last_node_;
 	delete tail_node_->next_node_;
-	tail_node_->next_node_ = nullptr;
+	tail_node_->next_node_ = beyond_tail_node_;
+	beyond_tail_node_->last_node_ = tail_node_;
 }
 
 template <typename T>
@@ -703,6 +794,10 @@ typename List<T>::positive_iterator List<T>::Insert(const positive_iterator iter
 	if(head_node_ == nullptr){
 		head_node_ = head_temp;
 		tail_node_ = tail_temp;
+		head_node_->last_node_ = beyond_head_node_;
+		beyond_head_node_->next_node_ = head_node_;
+		tail_node_->next_node_ = beyond_tail_node_;
+		beyond_tail_node_->last_node_ = tail_node_;
 		return this->Begin();
 	}
 	
@@ -710,6 +805,8 @@ typename List<T>::positive_iterator List<T>::Insert(const positive_iterator iter
 		head_node_->last_node_ = tail_temp;
 		tail_temp->next_node_ = head_node_;
 		head_node_ = head_temp;
+		head_node_->last_node_ = beyond_head_node_;
+		beyond_head_node_->next_node_ = head_node_;
 		return this->Begin();
 	}
 	
@@ -717,6 +814,8 @@ typename List<T>::positive_iterator List<T>::Insert(const positive_iterator iter
 		tail_node_->next_node_ = head_temp;
 		head_temp->last_node_ = tail_node_;
 		tail_node_ = tail_temp;
+		tail_node_->next_node_ = beyond_tail_node_;
+		beyond_tail_node_->last_node_ = tail_node_;
 		return valerij::ListPositiveIterator<T>(head_temp);
 	}
 	
@@ -758,6 +857,10 @@ typename List<T>::positive_iterator List<T>::Insert(const positive_iterator iter
 	if(head_node_ == nullptr){
 		head_node_ = head_temp;
 		tail_node_ = tail_temp;
+		head_node_->last_node_ = beyond_head_node_;
+		beyond_head_node_->next_node_ = head_node_;
+		tail_node_->next_node_ = beyond_tail_node_;
+		beyond_tail_node_->last_node_ = tail_node_;
 		return this->Begin();
 	}
 	
@@ -765,6 +868,8 @@ typename List<T>::positive_iterator List<T>::Insert(const positive_iterator iter
 		head_node_->last_node_ = tail_temp;
 		tail_temp->next_node_ = head_node_;
 		head_node_ = head_temp;
+		head_node_->last_node_ = beyond_head_node_;
+		beyond_head_node_->next_node_ = head_node_;
 		return this->Begin();
 	}
 	
@@ -772,6 +877,8 @@ typename List<T>::positive_iterator List<T>::Insert(const positive_iterator iter
 		tail_node_->next_node_ = head_temp;
 		head_temp->last_node_ = tail_node_;
 		tail_node_ = tail_temp;
+		tail_node_->next_node_ = beyond_tail_node_;
+		beyond_tail_node_->last_node_ = tail_node_;
 		return valerij::ListPositiveIterator<T>(head_temp);
 	}
 	
@@ -785,20 +892,13 @@ typename List<T>::positive_iterator List<T>::Insert(const positive_iterator iter
 
 template <typename T>
 typename List<T>::positive_iterator List<T>::Erase(const positive_iterator iterator){
-	if(iterator == valerij::ListPositiveIterator<T>(nullptr))
+	if(iterator == this->End())
 		throw new std::runtime_error("Wrong Position ---- Erase(positive_iterator)");
 	
-	if(element_size_ == 1) {this->Clear(); return this->Begin();}
-	
 	if(iterator == this->Begin()) {PopFront(); return this->Begin();}
+	if(iterator == --this->End()) {PopBack(); return this->End();}
 	
 	--element_size_;
-	if(iterator == valerij::ListPositiveIterator<T>(tail_node_)) {
-		tail_node_ = tail_node_->last_node_;
-		delete tail_node_->next_node_;
-		tail_node_->next_node_ = nullptr;
-		return this->End();
-	}
 	
 	valerij::ListNode<T> *temp_pointer = iterator.node_pointer_->last_node_;
 	temp_pointer->next_node_->next_node_->last_node_ = temp_pointer;
@@ -816,7 +916,7 @@ typename List<T>::positive_iterator List<T>::Erase(const positive_iterator first
 	
 	if(first_iterator == this->Begin() && second_iterator == this->End()){
 		this->Clear();
-		return this->Begin();
+		return this->End();
 	}
 	
 	element_size_ -= size;
@@ -826,20 +926,23 @@ typename List<T>::positive_iterator List<T>::Erase(const positive_iterator first
 	
 	if(first_iterator == this->Begin()){
 		tail_temp = second_iterator.node_pointer_->last_node_;
+		head_temp = head_node_;
 		head_node_ = second_iterator.node_pointer_;
+		head_node_->last_node_ = beyond_head_node_;
+		beyond_head_node_->next_node_ = head_node_;
 		tail_temp->next_node_ = nullptr;
-		head_node_->last_node_ = nullptr;
 	}else if(second_iterator == this->End()){
 		head_temp = first_iterator.node_pointer_;
+		tail_temp = second_iterator.node_pointer_->last_node_;
 		tail_node_ = head_temp->last_node_;
-		head_temp->last_node_ = nullptr;
-		tail_node_->next_node_ = nullptr;
+		tail_node_->next_node_ = beyond_tail_node_;
+		beyond_tail_node_->last_node_ = tail_node_;
+		tail_temp->next_node_ = nullptr;
 	}else{
 		head_temp = first_iterator.node_pointer_;
 		tail_temp = second_iterator.node_pointer_->last_node_;
 		head_temp->last_node_->next_node_ = tail_temp->next_node_;
 		tail_temp->next_node_->last_node_ = head_temp->last_node_;
-		head_temp->last_node_ = nullptr;
 		tail_temp->next_node_ = nullptr;
 	}
 	
@@ -860,8 +963,8 @@ typename List<T>::positive_iterator List<T>::Erase(const positive_iterator first
 template <typename T>
 typename List<T>::negative_iterator List<T>::Insert(const negative_iterator iterator,
 													const T &element){
-	if(iterator == this->REnd()){PushFront(element); return valerij::ListNegativeIterator(head_node_);}
-	if(iterator == this->RBegin()){PushBack(element);return valerij::ListNegativeIterator(tail_node_);}
+	if(iterator == this->RBegin()){PushBack(element);return this->RBegin();}
+	if(iterator == this->REnd()){PushFront(element); return this->REnd();}
 	
 	++element_size_;
 	valerij::ListNode<T> *temp_pointer = iterator.node_pointer_->next_node_;
@@ -876,7 +979,7 @@ typename List<T>::negative_iterator List<T>::Insert(const negative_iterator iter
 
 template <typename T>
 typename List<T>::negative_iterator List<T>::Insert(const negative_iterator iterator,
-	const size_t size,const T &element){
+													const size_t size,const T &element){
 	if(size == 0) throw new std::runtime_error("Wrong Size ---- Insert(iter,size,element)");
 	
 	element_size_ += size;
@@ -890,30 +993,38 @@ typename List<T>::negative_iterator List<T>::Insert(const negative_iterator iter
 			head_temp = temp_node;
 			tail_temp = temp_node;
 		}else{
-			tail_temp->next_node_ = temp_node;
-			temp_node->last_node_  = tail_temp;
+			tail_temp->last_node_ = temp_node;
+			temp_node->next_node_  = tail_temp;
 			tail_temp = temp_node;
 		}
 	}
 	
 	if(head_node_ == nullptr){
-		head_node_ = head_temp;
-		tail_node_ = tail_temp;
+		head_node_ = tail_temp;
+		tail_node_ = head_temp;
+		head_node_->last_node_ = beyond_head_node_;
+		beyond_head_node_->next_node_ = head_node_;
+		tail_node_->next_node_ = beyond_tail_node_;
+		beyond_tail_node_->last_node_ = tail_node_;
 		return this->RBegin();
 	}
 	
 	if(iterator == this->RBegin()){
-		tail_node_->next_node_ = head_temp;
-		head_temp->last_node_ = tail_node_;
-		tail_node_ = tail_temp;
+		tail_node_->next_node_ = tail_temp;
+		tail_temp->last_node_ = tail_node_;
+		tail_node_ = head_temp;
+		tail_node_->next_node_ = beyond_tail_node_;
+		beyond_tail_node_->last_node_ = tail_node_;
 		return this->RBegin();
 	}
 	
 	if(iterator == this->REnd()){
-		head_node_->last_node_ = tail_temp;
-		tail_temp->next_node_ = head_node_;
-		head_node_ = head_temp;
-		return valerij::ListNegativeIterator<T>(tail_temp);
+		head_node_->last_node_ = head_temp;
+		head_temp->next_node_ = head_node_;
+		head_node_ = tail_temp;
+		head_node_->last_node_ = beyond_head_node_;
+		beyond_head_node_->next_node_ = head_node_;
+		return valerij::ListNegativeIterator<T>(head_temp);
 	}
 	
 	valerij::ListNode<T> *temp_pointer = iterator.node_pointer_->next_node_;
@@ -945,15 +1056,19 @@ typename List<T>::negative_iterator List<T>::Insert(const negative_iterator iter
 			head_temp = temp_node;
 			tail_temp = temp_node;
 		}else{
-			tail_temp->next_node_ = temp_node;
-			temp_node->last_node_  = tail_temp;
+			tail_temp->last_node_ = temp_node;
+			temp_node->next_node_  = tail_temp;
 			tail_temp = temp_node;
 		}
 	}
 	
 	if(head_node_ == nullptr){
-		tail_node_ = head_temp;
 		head_node_ = tail_temp;
+		tail_node_ = head_temp;
+		head_node_->last_node_ = beyond_head_node_;
+		beyond_head_node_->next_node_ = head_node_;
+		tail_node_->next_node_ = beyond_tail_node_;
+		beyond_tail_node_->last_node_ = tail_node_;
 		return this->RBegin();
 	}
 	
@@ -961,13 +1076,17 @@ typename List<T>::negative_iterator List<T>::Insert(const negative_iterator iter
 		tail_node_->next_node_ = tail_temp;
 		tail_temp->last_node_ = tail_node_;
 		tail_node_ = head_temp;
+		tail_node_->next_node_ = beyond_tail_node_;
+		beyond_tail_node_->last_node_ = tail_node_;
 		return this->RBegin();
 	}
 	
 	if(iterator == this->REnd()){
 		head_node_->last_node_ = head_temp;
 		head_temp->next_node_ = head_node_;
-		head_node_ = head_temp;
+		head_node_ = tail_temp;
+		head_node_->last_node_ = beyond_head_node_;
+		beyond_head_node_->next_node_ = head_node_;
 		return valerij::ListNegativeIterator<T>(head_temp);
 	}
 	
@@ -981,20 +1100,13 @@ typename List<T>::negative_iterator List<T>::Insert(const negative_iterator iter
 
 template <typename T>
 typename List<T>::negative_iterator List<T>::Erase(const negative_iterator iterator){
-	if(iterator == valerij::ListNegativeIterator<T>(nullptr))
+	if(iterator == this->REnd())
 		throw new std::runtime_error("Wrong Position ---- Erase(negative_iterator)");
 	
-	if(element_size_ == 1) {this->Clear(); return this->RBegin();}
-	
 	if(iterator == this->RBegin()) {PopBack(); return this->RBegin();}
+	if(iterator == --this->REnd()) {PopFront(); return this->REnd();}
 	
 	--element_size_;
-	if(iterator == valerij::ListNegativeIterator<T>(head_node_)) {
-		head_node_ = head_node_->next_node_;
-		delete head_node_->last_node_;
-		head_node_->last_node_ = nullptr;
-		return this->REnd();
-	}
 	
 	valerij::ListNode<T> *temp_pointer = iterator.node_pointer_->next_node_;
 	temp_pointer->last_node_->last_node_->next_node_ = temp_pointer;
@@ -1012,7 +1124,7 @@ typename List<T>::negative_iterator List<T>::Erase(const negative_iterator first
 	
 	if(first_iterator == this->RBegin() && second_iterator == this->REnd()){
 		this->Clear();
-		return this->RBegin();
+		return this->REnd();
 	}
 	
 	element_size_ -= size;
@@ -1022,20 +1134,23 @@ typename List<T>::negative_iterator List<T>::Erase(const negative_iterator first
 	
 	if(first_iterator == this->RBegin()){
 		head_temp = second_iterator.node_pointer_->next_node_;
+		tail_temp = tail_node_;
+		tail_temp->next_node_ = nullptr;
 		tail_node_ = second_iterator.node_pointer_;
-		tail_node_->next_node_ = nullptr;
+		tail_node_->next_node_ = beyond_tail_node_;
+		beyond_tail_node_->last_node_ = tail_node_;
 	}else if(second_iterator == this->REnd()){
 		tail_temp = first_iterator.node_pointer_;
 		head_temp = head_node_;
 		head_node_ = tail_temp->next_node_;
 		tail_temp->next_node_ = nullptr;
-		head_node_->last_node_ = nullptr;
+		head_node_->last_node_ = beyond_head_node_;
+		beyond_head_node_->next_node_ = head_node_;
 	}else{
 		head_temp = second_iterator.node_pointer_->next_node_;
 		tail_temp = first_iterator.node_pointer_;
 		head_temp->last_node_->next_node_ = tail_temp->next_node_;
 		tail_temp->next_node_->last_node_ = head_temp->last_node_;
-		head_temp->last_node_ = nullptr;
 		tail_temp->next_node_ = nullptr;
 	}
 	
@@ -1048,11 +1163,9 @@ typename List<T>::negative_iterator List<T>::Erase(const negative_iterator first
 			head_temp = nullptr;
 		}
 	}
-	tail_temp = nullptr;
 	
 	return valerij::ListNegativeIterator<T>(second_iterator.node_pointer_);
 }
-
 
 
 	
