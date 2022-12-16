@@ -835,6 +835,7 @@ typename List<T>::positive_iterator List<T>::Insert(const positive_iterator iter
 	number_type size = 0;
 	for(Iterator temp_iterator = first_iterator;temp_iterator != second_iterator;++temp_iterator)
 		++size;
+	if(size == 0) throw new std::runtime_error("Wrong Iterator ---- Insert(iterator,iterator)");
 	
 	element_size_ += size;
 	valerij::ListNode<T> *head_temp = nullptr;
@@ -913,6 +914,7 @@ typename List<T>::positive_iterator List<T>::Erase(const positive_iterator first
 	number_type size = 0;
 	for(positive_iterator temp_iterator = first_iterator;temp_iterator != second_iterator;++temp_iterator)
 		++size;
+	if(size == 0) throw new std::runtime_error("Wrong Iterator ---- Erase(iterator,iterator)");
 	
 	if(first_iterator == this->Begin() && second_iterator == this->End()){
 		this->Clear();
@@ -1044,6 +1046,8 @@ typename List<T>::negative_iterator List<T>::Insert(const negative_iterator iter
 	for(Iterator temp_iterator = first_iterator;temp_iterator != second_iterator;++temp_iterator)
 		++size;
 	
+	if(size == 0) throw new std::runtime_error("Wrong Iterator ---- Insert(iterator,iterator)");
+	
 	element_size_ += size;
 	valerij::ListNode<T> *head_temp = nullptr;
 	valerij::ListNode<T> *tail_temp = nullptr;
@@ -1051,7 +1055,7 @@ typename List<T>::negative_iterator List<T>::Insert(const negative_iterator iter
 	Iterator temp_iterator = first_iterator;
 	for(number_type i = 0;i != size; ++i){
 		valerij::ListNode<T> *temp_node = new valerij::ListNode<T>();
-		temp_node->element_pointer_ = new T(*(first_iterator++));
+		temp_node->element_pointer_ = new T(*(temp_iterator++));
 		if(i == 0){
 			head_temp = temp_node;
 			tail_temp = temp_node;
@@ -1121,6 +1125,7 @@ typename List<T>::negative_iterator List<T>::Erase(const negative_iterator first
 	number_type size = 0;
 	for(negative_iterator temp_iterator = first_iterator;temp_iterator != second_iterator;++temp_iterator)
 		++size;
+	if(size == 0) throw new std::runtime_error("Wrong Iterator ---- Erase(iterator,iterator)");
 	
 	if(first_iterator == this->RBegin() && second_iterator == this->REnd()){
 		this->Clear();
