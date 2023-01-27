@@ -7,410 +7,432 @@ namespace sablin{
 template <typename T>
 class Vector;
 
-namespace valerij{
+namespace dzerzhinsky{
+
+namespace lenin{
 
 template <typename T>
-class VectorPositiveIterator{
-	template <typename TYPE>
-	friend bool operator==(const VectorPositiveIterator<TYPE>&,const VectorPositiveIterator<TYPE>&);
-	template <typename TYPE>
-	friend bool operator!=(const VectorPositiveIterator<TYPE>&,const VectorPositiveIterator<TYPE>&);
-	template <typename TYPE>
-	friend bool operator<=(const VectorPositiveIterator<TYPE>&,const VectorPositiveIterator<TYPE>&);
-	template <typename TYPE>
-	friend bool operator>=(const VectorPositiveIterator<TYPE>&,const VectorPositiveIterator<TYPE>&);
-	template <typename TYPE>
-	friend bool operator<(const VectorPositiveIterator<TYPE>&,const VectorPositiveIterator<TYPE>&);
-	template <typename TYPE>
-	friend bool operator>(const VectorPositiveIterator<TYPE>&,const VectorPositiveIterator<TYPE>&);
-	template <typename TYPE>
-	friend int32_t operator-(const VectorPositiveIterator<TYPE>&,const VectorPositiveIterator<TYPE>&);
+class VectorIteratorBase{
 private:
-	T *pointer_;
+    T *pointer_;
 public:
-	VectorPositiveIterator(T*);
-	VectorPositiveIterator(const VectorPositiveIterator&);
-	VectorPositiveIterator(VectorPositiveIterator&&);
-	VectorPositiveIterator& operator=(const VectorPositiveIterator&);
-	VectorPositiveIterator& operator=(VectorPositiveIterator&&);
-	~VectorPositiveIterator();
-	
-	T& operator*() const;
-	T* operator->() const;
-	
-	VectorPositiveIterator<T>& operator++();
-	VectorPositiveIterator<T>& operator--();
-	VectorPositiveIterator<T>  operator++(int);
-	VectorPositiveIterator<T>  operator--(int);
-	
-	VectorPositiveIterator<T>& operator+=(const int32_t&);
-	VectorPositiveIterator<T>& operator-=(const int32_t&);
-	VectorPositiveIterator<T> operator+(const int32_t&);
-	VectorPositiveIterator<T> operator-(const int32_t&);
-	
-	VectorPositiveIterator<T>& operator+=(const size_t&);
-	VectorPositiveIterator<T>& operator-=(const size_t&);
-	VectorPositiveIterator<T> operator+(const size_t&);
-	VectorPositiveIterator<T> operator-(const size_t&);
+    VectorIteratorBase() : pointer_(nullptr){}
+    VectorIteratorBase(const VectorIteratorBase&) = default;
+    VectorIteratorBase& operator=(const VectorIteratorBase&) = default;
+    VectorIteratorBase& operator=(VectorIteratorBase&&) = default;
+    virtual ~VectorIteratorBase();
+    
+    void set_pointer(T*);
+    T* get_pointer() const;
+
+    virtual void SelfAdd(int32_t)=0;
+    virtual void SelfMinus(int32_t)=0;
 };
 
 template <typename T>
-VectorPositiveIterator<T>::VectorPositiveIterator(T *pointer):
-	pointer_(pointer) {}
-	
-template <typename T>
-VectorPositiveIterator<T>::VectorPositiveIterator(const VectorPositiveIterator &another){
-	pointer_ = another.pointer_;
+VectorIteratorBase<T>::~VectorIteratorBase(){
+    pointer_ = nullptr;
 }
 
 template <typename T>
-VectorPositiveIterator<T>::VectorPositiveIterator(VectorPositiveIterator &&another){
-	pointer_ = another.pointer_;
-	another.pointer_ = nullptr;
+void VectorIteratorBase<T>::set_pointer(T *pointer){
+    pointer_ = pointer;
 }
 
 template <typename T>
-VectorPositiveIterator<T>& VectorPositiveIterator<T>::operator=(const VectorPositiveIterator &another){
-	if(this == &another) return *this;
-	pointer_ = another.pointer_;
+T* VectorIteratorBase<T>::get_pointer() const{
+    return pointer_;
 }
 
 template <typename T>
-VectorPositiveIterator<T>& VectorPositiveIterator<T>::operator=(VectorPositiveIterator &&another){
-	if(this == &another) return *this;
-	pointer_ = another.pointer_;
-	another.pointer_ = nullptr;
-}
-
-template <typename T>
-VectorPositiveIterator<T>::~VectorPositiveIterator(){
-	pointer_ = nullptr;
-}
-
-template <typename T>
-T& VectorPositiveIterator<T>::operator*() const{
-	return *pointer_;
-}
-
-template <typename T>
-T* VectorPositiveIterator<T>::operator->() const{
-	return & this->operator*();
-}
-
-template <typename T>
-VectorPositiveIterator<T>& VectorPositiveIterator<T>::operator++(){
-	++pointer_;
-	return *this;
-}
-
-template <typename T>
-VectorPositiveIterator<T>& VectorPositiveIterator<T>::operator--(){
-	--pointer_;
-	return *this;
-}
-
-template <typename T>
-VectorPositiveIterator<T> VectorPositiveIterator<T>::operator++(int){
-	VectorPositiveIterator temp(pointer_);
-	++pointer_;
-	return temp;
-}
-
-template <typename T>
-VectorPositiveIterator<T> VectorPositiveIterator<T>::operator--(int){
-	VectorPositiveIterator temp(pointer_);
-	--pointer_;
-	return temp;
-}
-
-template <typename T>
-VectorPositiveIterator<T>& VectorPositiveIterator<T>::operator+=(const int32_t &difference){
-	pointer_ += difference;
-	return *this;
-}
-
-template <typename T>
-VectorPositiveIterator<T>& VectorPositiveIterator<T>::operator-=(const int32_t &difference){
-	pointer_ -= difference;
-	return *this;
-}
-
-template <typename T>
-VectorPositiveIterator<T> VectorPositiveIterator<T>::operator+(const int32_t &difference){
-	VectorPositiveIterator<T> temp(*this);
-	temp += difference;
-	return temp;
-}
-
-template <typename T>
-VectorPositiveIterator<T> VectorPositiveIterator<T>::operator-(const int32_t &difference){
-	VectorPositiveIterator<T> temp(*this);
-	temp -= difference;
-	return temp;
-}
-
-template <typename T>
-VectorPositiveIterator<T>& VectorPositiveIterator<T>::operator+=(const size_t &difference){
-	pointer_ += difference;
-	return *this;
-}
-
-template <typename T>
-VectorPositiveIterator<T>& VectorPositiveIterator<T>::operator-=(const size_t &difference){
-	pointer_ -= difference;
-	return *this;
-}
-
-template <typename T>
-VectorPositiveIterator<T> VectorPositiveIterator<T>::operator+(const size_t &difference){
-	VectorPositiveIterator<T> temp(*this);
-	temp += difference;
-	return temp;
-}
-
-template <typename T>
-VectorPositiveIterator<T> VectorPositiveIterator<T>::operator-(const size_t &difference){
-	VectorPositiveIterator<T> temp(*this);
-	temp -= difference;
-	return temp;
-}
-
-template <typename T>
-bool operator==(const VectorPositiveIterator<T> &lhs,const VectorPositiveIterator<T> &rhs){
-	return lhs.pointer_ == rhs.pointer_;
-}
-
-template <typename T>
-bool operator!=(const VectorPositiveIterator<T> &lhs,const VectorPositiveIterator<T> &rhs){
-	return lhs.pointer_ != rhs.pointer_;
-}
-
-template <typename T>
-bool operator<=(const VectorPositiveIterator<T> &lhs,const VectorPositiveIterator<T> &rhs){
-	return lhs.pointer_ <= rhs.pointer_;
-}
-
-template <typename T>
-bool operator>=(const VectorPositiveIterator<T> &lhs,const VectorPositiveIterator<T> &rhs){
-	return lhs.pointer_ >= rhs.pointer_;
-}
-
-template <typename T>
-bool operator<(const VectorPositiveIterator<T> &lhs,const VectorPositiveIterator<T> &rhs){
-	return lhs.pointer_ < rhs.pointer_;
-}
-
-template <typename T>
-bool operator>(const VectorPositiveIterator<T> &lhs,const VectorPositiveIterator<T> &rhs){
-	return lhs.pointer_ > rhs.pointer_;
-}
-
-template <typename T>
-int32_t operator-(const VectorPositiveIterator<T> &lhs,const VectorPositiveIterator<T> &rhs){
-	return lhs.pointer_ - rhs.pointer_;
-}
-
-template <typename T>
-class VectorNegativeIterator{
-	template <typename TYPE>
-	friend bool operator==(const VectorNegativeIterator<TYPE>&,const VectorNegativeIterator<TYPE>&);
-	template <typename TYPE>
-	friend bool operator!=(const VectorNegativeIterator<TYPE>&,const VectorNegativeIterator<TYPE>&);
-	template <typename TYPE>
-	friend bool operator<=(const VectorNegativeIterator<TYPE>&,const VectorNegativeIterator<TYPE>&);
-	template <typename TYPE>
-	friend bool operator>=(const VectorNegativeIterator<TYPE>&,const VectorNegativeIterator<TYPE>&);
-	template <typename TYPE>
-	friend bool operator<(const VectorNegativeIterator<TYPE>&,const VectorNegativeIterator<TYPE>&);
-	template <typename TYPE>
-	friend bool operator>(const VectorNegativeIterator<TYPE>&,const VectorNegativeIterator<TYPE>&);
-	template <typename TYPE>
-	friend int32_t operator-(const VectorNegativeIterator<TYPE>&,const VectorNegativeIterator<TYPE>&);
-private:
-	T *pointer_;
+class VectorIteratorPositive : public VectorIteratorBase<T>{
 public:
-	VectorNegativeIterator(T*);
-	VectorNegativeIterator(const VectorNegativeIterator&);
-	VectorNegativeIterator(VectorNegativeIterator&&);
-	VectorNegativeIterator& operator=(const VectorNegativeIterator&);
-	VectorNegativeIterator& operator=(VectorNegativeIterator&&);
-	~VectorNegativeIterator();
-	
-	T& operator*() const;
-	T* operator->() const;
-	
-	VectorNegativeIterator<T>& operator++();
-	VectorNegativeIterator<T>& operator--();
-	VectorNegativeIterator<T>  operator++(int);
-	VectorNegativeIterator<T>  operator--(int);
-	
-	VectorNegativeIterator<T>& operator+=(const int32_t&);
-	VectorNegativeIterator<T>& operator-=(const int32_t&);
-	VectorNegativeIterator<T> operator+(const int32_t&);
-	VectorNegativeIterator<T> operator-(const int32_t&);
-	
-	VectorNegativeIterator<T>& operator+=(const size_t&);
-	VectorNegativeIterator<T>& operator-=(const size_t&);
-	VectorNegativeIterator<T> operator+(const size_t&);
-	VectorNegativeIterator<T> operator-(const size_t&);
+    VectorIteratorPositive(T*);
+    VectorIteratorPositive(const VectorIteratorPositive&);
+    VectorIteratorPositive(VectorIteratorPositive&&);
+    VectorIteratorPositive& operator=(const VectorIteratorPositive&);
+    VectorIteratorPositive& operator=(VectorIteratorPositive&&);
+    ~VectorIteratorPositive() = default;
+
+    void SelfAdd(int32_t) override;
+    void SelfMinus(int32_t) override;
 };
 
 template <typename T>
-VectorNegativeIterator<T>::VectorNegativeIterator(T *pointer):
-	pointer_(pointer) {}
-	
-template <typename T>
-VectorNegativeIterator<T>::VectorNegativeIterator(const VectorNegativeIterator &another){
-	pointer_ = another.pointer_;
+VectorIteratorPositive<T>::VectorIteratorPositive(T *pointer){
+    this->set_pointer(pointer);
 }
 
 template <typename T>
-VectorNegativeIterator<T>::VectorNegativeIterator(VectorNegativeIterator &&another){
-	pointer_ = another.pointer_;
-	another.pointer_ = nullptr;
+VectorIteratorPositive<T>::VectorIteratorPositive(const VectorIteratorPositive &another){
+    this->set_pointer(another.get_pointer());
 }
 
 template <typename T>
-VectorNegativeIterator<T>& VectorNegativeIterator<T>::operator=(const VectorNegativeIterator &another){
-	if(this == &another) return *this;
-	pointer_ = another.pointer_;
+VectorIteratorPositive<T>::VectorIteratorPositive(VectorIteratorPositive &&another){
+    this->set_pointer(another.get_pointer());
+    another.set_pointer(nullptr);
 }
 
 template <typename T>
-VectorNegativeIterator<T>& VectorNegativeIterator<T>::operator=(VectorNegativeIterator &&another){
-	if(this == &another) return *this;
-	pointer_ = another.pointer_;
-	another.pointer_ = nullptr;
+VectorIteratorPositive<T>& VectorIteratorPositive<T>::operator=(const VectorIteratorPositive &another){
+    if(this == &another) return *this;
+    this->set_pointer(another.get_pointer());
+    return *this;
 }
 
 template <typename T>
-VectorNegativeIterator<T>::~VectorNegativeIterator(){
-	pointer_ = nullptr;
+VectorIteratorPositive<T>& VectorIteratorPositive<T>::operator=(VectorIteratorPositive &&another){
+    if(this == &another) return *this;
+    this->set_pointer(another.get_pointer());
+    another.set_pointer(nullptr);
+    return *this;
 }
 
 template <typename T>
-T& VectorNegativeIterator<T>::operator*() const{
-	return *pointer_;
+void VectorIteratorPositive<T>::SelfAdd(int32_t difference){
+    T* pointer_temp = this->get_pointer();
+    pointer_temp += difference;
+    this->set_pointer(pointer_temp);
 }
 
 template <typename T>
-T* VectorNegativeIterator<T>::operator->() const{
-	return & this->operator*();
+void VectorIteratorPositive<T>::SelfMinus(int32_t difference){
+    T* pointer_temp = this->get_pointer();
+    pointer_temp -= difference;
+    this->set_pointer(pointer_temp);
 }
 
 template <typename T>
-VectorNegativeIterator<T>& VectorNegativeIterator<T>::operator++(){
-	--pointer_;
-	return *this;
+class VectorIteratorNegative : public VectorIteratorBase<T>{
+public:
+    VectorIteratorNegative(T*);
+    VectorIteratorNegative(const VectorIteratorNegative&);
+    VectorIteratorNegative(VectorIteratorNegative&&);
+    VectorIteratorNegative& operator=(const VectorIteratorNegative&);
+    VectorIteratorNegative& operator=(VectorIteratorNegative&&);
+    ~VectorIteratorNegative() = default;
+
+    void SelfAdd(int32_t) override;
+    void SelfMinus(int32_t) override;
+};
+
+template <typename T>
+VectorIteratorNegative<T>::VectorIteratorNegative(T *pointer){
+    this->set_pointer(pointer);
 }
 
 template <typename T>
-VectorNegativeIterator<T>& VectorNegativeIterator<T>::operator--(){
-	++pointer_;
-	return *this;
+VectorIteratorNegative<T>::VectorIteratorNegative(const VectorIteratorNegative &another){
+    this->set_pointer(another.get_pointer());
 }
 
 template <typename T>
-VectorNegativeIterator<T> VectorNegativeIterator<T>::operator++(int){
-	VectorNegativeIterator temp(pointer_);
-	--pointer_;
-	return temp;
+VectorIteratorNegative<T>::VectorIteratorNegative(VectorIteratorNegative &&another){
+    this->set_pointer(another.get_pointer());
+    another.set_pointer(nullptr);
 }
 
 template <typename T>
-VectorNegativeIterator<T> VectorNegativeIterator<T>::operator--(int){
-	VectorNegativeIterator temp(pointer_);
-	++pointer_;
-	return temp;
+VectorIteratorNegative<T>& VectorIteratorNegative<T>::operator=(const VectorIteratorNegative &another){
+    if(this == &another) return *this;
+    this->set_pointer(another.get_pointer());
+    return *this;
 }
 
 template <typename T>
-VectorNegativeIterator<T>& VectorNegativeIterator<T>::operator+=(const int32_t &difference){
-	pointer_ -= difference;
-	return *this;
+VectorIteratorNegative<T>& VectorIteratorNegative<T>::operator=(VectorIteratorNegative &&another){
+    if(this == &another) return *this;
+    this->set_pointer(another.get_pointer());
+    another.set_pointer(nullptr);
+    return *this;
 }
 
 template <typename T>
-VectorNegativeIterator<T>& VectorNegativeIterator<T>::operator-=(const int32_t &difference){
-	pointer_ += difference;
-	return *this;
+void VectorIteratorNegative<T>::SelfAdd(int32_t difference){
+    T* temp_pointer = this->get_pointer();
+    temp_pointer -= difference;
+    this->set_pointer(temp_pointer);
 }
 
 template <typename T>
-VectorNegativeIterator<T> VectorNegativeIterator<T>::operator+(const int32_t &difference){
-	VectorNegativeIterator<T> temp(*this);
-	temp += difference;
-	return temp;
+void VectorIteratorNegative<T>::SelfMinus(int32_t difference){
+    T* temp_pointer = this->get_pointer();
+    temp_pointer += difference;
+    this->set_pointer(temp_pointer);
+}
 }
 
 template <typename T>
-VectorNegativeIterator<T> VectorNegativeIterator<T>::operator-(const int32_t &difference){
-	VectorNegativeIterator<T> temp(*this);
-	temp -= difference;
-	return temp;
+class VectorIterator{
+    friend class Vector<T>;
+    template <typename TYPE>
+    friend bool operator==(const VectorIterator<TYPE>&,const VectorIterator<TYPE>&);
+    template <typename TYPE>
+    friend bool operator!=(const VectorIterator<TYPE>&,const VectorIterator<TYPE>&);
+    template <typename TYPE>
+    friend bool operator<=(const VectorIterator<TYPE>&,const VectorIterator<TYPE>&);
+    template <typename TYPE>
+    friend bool operator>=(const VectorIterator<TYPE>&,const VectorIterator<TYPE>&);
+    template <typename TYPE>
+    friend bool operator<(const VectorIterator<TYPE>&,const VectorIterator<TYPE>&);
+    template <typename TYPE>
+    friend bool operator>(const VectorIterator<TYPE>&,const VectorIterator<TYPE>&);
+    template <typename TYPE>
+    friend int32_t operator-(const VectorIterator<TYPE>&,const VectorIterator<TYPE>&);
+private:
+    lenin::VectorIteratorBase<T> *vector_iterator_base_pointer_;
+public:
+    VectorIterator();
+    VectorIterator(const VectorIterator&);
+    VectorIterator(VectorIterator&&);
+    VectorIterator& operator=(const VectorIterator&);
+    VectorIterator& operator=(VectorIterator&&);
+    ~VectorIterator();
+
+    VectorIterator<T>& operator++();
+    VectorIterator<T>& operator--();
+    VectorIterator<T> operator++(int);
+    VectorIterator<T> operator--(int);
+
+    VectorIterator<T>& operator+=(const int32_t&);
+    VectorIterator<T>& operator-=(const int32_t&);
+    VectorIterator<T> operator+(const int32_t&);
+    VectorIterator<T> operator-(const int32_t&);
+
+    T& operator*() const;
+    T* operator->() const;
+};
+
+template <typename T>
+VectorIterator<T>::VectorIterator():
+vector_iterator_base_pointer_(nullptr){}
+
+template <typename T>
+VectorIterator<T>::VectorIterator(const VectorIterator &another){
+    if(another.vector_iterator_base_pointer_ == nullptr){
+        vector_iterator_base_pointer_ = nullptr;
+        return;
+    }
+    if(typeid(*(another.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorPositive<T>))
+        vector_iterator_base_pointer_ = new lenin::VectorIteratorPositive<T>(another.vector_iterator_base_pointer_->get_pointer());
+    else if(typeid(*(another.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorNegative<T>))
+        vector_iterator_base_pointer_ = new lenin::VectorIteratorNegative<T>(another.vector_iterator_base_pointer_->get_pointer());
+    else
+        throw new std::runtime_error("Construct Wrong Owing to Wrong Type!");
 }
 
 template <typename T>
-VectorNegativeIterator<T>& VectorNegativeIterator<T>::operator+=(const size_t &difference){
-	pointer_ -= difference;
-	return *this;
+VectorIterator<T>::VectorIterator(VectorIterator &&another){
+    if(another.vector_iterator_base_pointer_ == nullptr){
+        vector_iterator_base_pointer_ = nullptr;
+        return;
+    }
+    vector_iterator_base_pointer_ = another.vector_iterator_base_pointer_;
+    another.vector_iterator_base_pointer_ = nullptr;
 }
 
 template <typename T>
-VectorNegativeIterator<T>& VectorNegativeIterator<T>::operator-=(const size_t &difference){
-	pointer_ += difference;
-	return *this;
+VectorIterator<T>& VectorIterator<T>::operator=(const VectorIterator &another){
+    if(this == &another) return *this;
+
+    lenin::VectorIteratorBase<T> *temp_pointer = nullptr;
+    if(another.vector_iterator_base_pointer_ == nullptr)
+        temp_pointer = nullptr;
+    else if(typeid(*(another.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorPositive<T>))
+        temp_pointer = new lenin::VectorIteratorPositive<T>(another.vector_iterator_base_pointer_->get_pointer());
+    else if(typeid(*(another.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorNegative<T>))
+        temp_pointer = new lenin::VectorIteratorNegative<T>(another.vector_iterator_base_pointer_->get_pointer());
+    else
+        throw new std::runtime_error("Construct Wrong Owing to Wrong Type!");
+
+    if(vector_iterator_base_pointer_ != nullptr)
+        delete vector_iterator_base_pointer_;
+
+    vector_iterator_base_pointer_ = temp_pointer;
+    return *this;
 }
 
 template <typename T>
-VectorNegativeIterator<T> VectorNegativeIterator<T>::operator+(const size_t &difference){
-	VectorNegativeIterator<T> temp(*this);
-	temp += difference;
-	return temp;
+VectorIterator<T>& VectorIterator<T>::operator=(VectorIterator &&another){
+    if(this == &another) return *this;
+    if(vector_iterator_base_pointer_ != nullptr)
+        delete vector_iterator_base_pointer_;
+    vector_iterator_base_pointer_ = another.vector_iterator_base_pointer_;
+    another.vector_iterator_base_pointer_ = nullptr;
+    return *this;
 }
 
 template <typename T>
-VectorNegativeIterator<T> VectorNegativeIterator<T>::operator-(const size_t &difference){
-	VectorNegativeIterator<T> temp(*this);
-	temp -= difference;
-	return temp;
+VectorIterator<T>::~VectorIterator(){
+    if(vector_iterator_base_pointer_ != nullptr)
+        delete vector_iterator_base_pointer_;
+    vector_iterator_base_pointer_ = nullptr;
 }
 
 template <typename T>
-bool operator==(const VectorNegativeIterator<T> &lhs,const VectorNegativeIterator<T> &rhs){
-	return lhs.pointer_ == rhs.pointer_;
+VectorIterator<T>& VectorIterator<T>::operator++(){
+    if(vector_iterator_base_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator!");
+    vector_iterator_base_pointer_->SelfAdd(1);
+    return *this;
 }
 
 template <typename T>
-bool operator!=(const VectorNegativeIterator<T> &lhs,const VectorNegativeIterator<T> &rhs){
-	return lhs.pointer_ != rhs.pointer_;
+VectorIterator<T>& VectorIterator<T>::operator--(){
+    if(vector_iterator_base_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator!");
+    vector_iterator_base_pointer_->SelfMinus(1);
+    return *this;
 }
 
 template <typename T>
-bool operator<=(const VectorNegativeIterator<T> &lhs,const VectorNegativeIterator<T> &rhs){
-	return lhs.pointer_ >= rhs.pointer_;
+VectorIterator<T> VectorIterator<T>::operator++(int){
+    if(vector_iterator_base_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator!");
+    VectorIterator temp(*this);
+    vector_iterator_base_pointer_->SelfAdd(1);
+    return temp;
 }
 
 template <typename T>
-bool operator>=(const VectorNegativeIterator<T> &lhs,const VectorNegativeIterator<T> &rhs){
-	return lhs.pointer_ <= rhs.pointer_;
+VectorIterator<T> VectorIterator<T>::operator--(int){
+    if(vector_iterator_base_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator!");
+    VectorIterator temp(*this);
+    vector_iterator_base_pointer_->SelfMinus(1);
+    return temp;
 }
 
 template <typename T>
-bool operator>(const VectorNegativeIterator<T> &lhs,const VectorNegativeIterator<T> &rhs){
-	return lhs.pointer_ < rhs.pointer_;
+VectorIterator<T>& VectorIterator<T>::operator+=(const int32_t &difference){
+    if(vector_iterator_base_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator");
+    vector_iterator_base_pointer_.SelfAdd(difference);
+    return *this;
 }
 
 template <typename T>
-bool operator<(const VectorNegativeIterator<T> &lhs,const VectorNegativeIterator<T> &rhs){
-	return lhs.pointer_ > rhs.pointer_;
+VectorIterator<T>& VectorIterator<T>::operator-=(const int32_t &difference){
+    if(vector_iterator_base_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator");
+    vector_iterator_base_pointer_.SelfMinus(difference);
+    return *this;
 }
 
 template <typename T>
-int32_t operator-(const VectorNegativeIterator<T> &lhs,const VectorNegativeIterator<T> &rhs){
-	return rhs.pointer_ - lhs.pointer_;
+VectorIterator<T> VectorIterator<T>::operator+(const int32_t &difference){
+    VectorIterator<T> temp(*this);
+    temp += difference;
+    return temp;
 }
-	
+
+template <typename T>
+VectorIterator<T> VectorIterator<T>::operator-(const int32_t &difference){
+    VectorIterator<T> temp(*this);
+    temp -= difference;
+    return temp;
+}
+
+template <typename T>
+T& VectorIterator<T>::operator*() const{
+    if(vector_iterator_base_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator!");
+    return *(vector_iterator_base_pointer_->get_pointer());
+}
+
+template <typename T>
+T* VectorIterator<T>::operator->() const{
+    if(vector_iterator_base_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator!");
+    return vector_iterator_base_pointer_->get_pointer();
+}
+
+template <typename T>
+bool operator==(const VectorIterator<T> &lhs,const VectorIterator<T> &rhs){
+    if(lhs.vector_iterator_base_pointer_ != nullptr && rhs.vector_iterator_base_pointer_ != nullptr){
+        if(typeid(*(lhs.vector_iterator_base_pointer_)) == typeid(*(rhs.vector_iterator_base_pointer_)))
+            return lhs.vector_iterator_base_pointer_->get_pointer() == rhs.vector_iterator_base_pointer_->get_pointer();
+        else
+            return false;
+    }else if(lhs.vector_iterator_base_pointer_ == nullptr && rhs.vector_iterator_base_pointer_ == nullptr){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+template <typename T>
+bool operator!=(const VectorIterator<T> &lhs,const VectorIterator<T> &rhs){
+    return !(lhs == rhs); 
+}
+
+template <typename T>
+bool operator<=(const VectorIterator<T> &lhs,const VectorIterator<T> &rhs){
+    if(lhs.vector_iterator_base_pointer_ != nullptr && rhs.vector_iterator_base_pointer_ != nullptr){
+        if(typeid(*(lhs.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorPositive<T>) &&
+           typeid(*(rhs.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorPositive<T>))
+                return lhs.vector_iterator_base_pointer_->get_pointer() <= rhs.vector_iterator_base_pointer_->get_pointer();
+        else if(typeid(*(lhs.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorNegative<T>) &&
+                typeid(*(rhs.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorNegative<T>))
+                    return lhs.vector_iterator_base_pointer_->get_pointer() >= rhs.vector_iterator_base_pointer_->get_pointer();
+        else
+            throw new std::runtime_error("Wrong Iterator Type Comparsion!");
+    }else if(lhs.vector_iterator_base_pointer_ == nullptr && rhs.vector_iterator_base_pointer_ == nullptr){
+        return true;
+    }else if(lhs.vector_iterator_base_pointer_ == nullptr && rhs.vector_iterator_base_pointer_ != nullptr){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+template <typename T>
+bool operator>=(const VectorIterator<T> &lhs,const VectorIterator<T> &rhs){
+    return lhs == rhs || !(lhs <= rhs);
+}
+
+template <typename T>
+bool operator<(const VectorIterator<T> &lhs,const VectorIterator<T> &rhs){
+    if(lhs.vector_iterator_base_pointer_ != nullptr && rhs.vector_iterator_base_pointer_ != nullptr){
+        if(typeid(*(lhs.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorPositive<T>) &&
+           typeid(*(rhs.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorPositive<T>))
+                return lhs.vector_iterator_base_pointer_->get_pointer() < rhs.vector_iterator_base_pointer_->get_pointer();
+        else if(typeid(*(lhs.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorNegative<T>) &&
+                typeid(*(rhs.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorNegative<T>))
+                    return lhs.vector_iterator_base_pointer_->get_pointer() > rhs.vector_iterator_base_pointer_->get_pointer();
+        else
+            throw new std::runtime_error("Wrong Iterator Type Comparsion!");
+    }else if(lhs.vector_iterator_base_pointer_ == nullptr && rhs.vector_iterator_base_pointer_ != nullptr){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+template <typename T>
+bool operator>(const VectorIterator<T> &lhs,const VectorIterator<T> &rhs){
+    return !(lhs <= rhs);
+}
+
+template <typename T>
+int32_t operator-(const VectorIterator<T> &lhs,const VectorIterator<T> &rhs){
+    if(lhs.vector_iterator_base_pointer_ != nullptr && rhs.vector_iterator_base_pointer_ != nullptr){
+        if(typeid(*(lhs.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorPositive<T>) &&
+           typeid(*(rhs.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorPositive<T>))
+                return lhs.vector_iterator_base_pointer_->get_pointer() - rhs.vector_iterator_base_pointer_->get_pointer();
+        else if(typeid(*(lhs.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorNegative<T>) &&
+                typeid(*(rhs.vector_iterator_base_pointer_)) == typeid(lenin::VectorIteratorNegative<T>))
+                    return rhs.vector_iterator_base_pointer_->get_pointer() - lhs.vector_iterator_base_pointer_->get_pointer();
+        else
+            throw new std::runtime_error("Wrong Type Comparsion!");
+    }else if(lhs.vector_iterator_base_pointer_ == nullptr && rhs.vector_iterator_base_pointer_ == nullptr){
+        return 0;
+    }else{
+        throw new std::runtime_error("Wrong Type Comparsion!");
+    }
+}
+
 }
 
 template <typename T>
@@ -418,8 +440,7 @@ class Vector{
 public:
 	typedef T 								   element_type;
 	typedef size_t 							   number_type;
-	typedef valerij::VectorPositiveIterator<T> positive_iterator;
-	typedef valerij::VectorNegativeIterator<T> negative_iterator;
+	typedef dzerzhinsky::VectorIterator<T>     iterator;
 private:
 	number_type allocated_size_;
 	number_type element_size_;
@@ -432,6 +453,22 @@ private:
 	
 	void EnlargeMemory();
 	void ReduceMemory();
+
+	iterator InsertPositive(iterator,const T&);
+	iterator InsertPositive(iterator,const number_type,const T&);
+	template <typename Iterator>
+	iterator InsertPositive(iterator,const Iterator,const Iterator);
+	
+	iterator ErasePositive(iterator);
+	iterator ErasePositive(iterator,iterator);
+
+    iterator InsertNegative(iterator,const T&);
+    iterator InsertNegative(iterator,const number_type,const T&);
+    template <typename Iterator>
+    iterator InsertNegative(iterator,const Iterator,const Iterator);
+
+    iterator EraseNegative(iterator);
+    iterator EraseNegative(iterator,iterator);
 public:
 	Vector() : allocated_size_(0),element_size_(0),
 			   head_pointer_(nullptr),tail_pointer_(nullptr){}
@@ -459,10 +496,10 @@ public:
 	}
 	//Debug--------------------------------------
 	
-	positive_iterator Begin() noexcept;
-	positive_iterator End() noexcept;
-	negative_iterator RBegin() noexcept;
-	negative_iterator REnd() noexcept;
+	iterator Begin() noexcept;
+	iterator End() noexcept;
+	iterator RBegin() noexcept;
+	iterator REnd() noexcept;
 	
 	bool IsEmpty() const {return element_size_ == 0;}
 	
@@ -481,21 +518,13 @@ public:
 	
 	T PopBack();
 	
-	positive_iterator Insert(positive_iterator,const T&);
-	positive_iterator Insert(positive_iterator,const number_type,const T&);
+	iterator Insert(iterator,const T&);
+	iterator Insert(iterator,const number_type,const T&);
 	template <typename Iterator>
-	positive_iterator Insert(positive_iterator,const Iterator,const Iterator);
+	iterator Insert(iterator,const Iterator,const Iterator);
 	
-	positive_iterator Erase(positive_iterator);
-	positive_iterator Erase(positive_iterator,positive_iterator);
-	
-	negative_iterator Insert(negative_iterator,const T&);
-	negative_iterator Insert(negative_iterator,const number_type,const T&);
-	template <typename Iterator>
-	negative_iterator Insert(negative_iterator,const Iterator,const Iterator);
-	
-	negative_iterator Erase(negative_iterator);
-	negative_iterator Erase(negative_iterator,negative_iterator);
+	iterator Erase(iterator);
+	iterator Erase(iterator,iterator);
 	
 	void Clear() noexcept;
 };
@@ -552,7 +581,7 @@ Vector<T>::Vector(const Vector &another){
 	element_size_ = another.element_size_;
 	allocated_size_ = another.allocatefd_size_;
 	
-	if(allocated_size_ = 0){
+	if(allocated_size_ == 0){
 		head_pointer_ = tail_pointer_ = nullptr;
 		return;
 	}
@@ -671,25 +700,33 @@ T Vector<T>::At(const number_type index) const{
 }
 
 template <typename T>
-typename Vector<T>::positive_iterator Vector<T>::Begin() noexcept{
-	return valerij::VectorPositiveIterator<T>(head_pointer_);
+typename Vector<T>::iterator Vector<T>::Begin() noexcept{
+    dzerzhinsky::VectorIterator<T> temp;
+    temp.vector_iterator_base_pointer_ = new dzerzhinsky::lenin::VectorIteratorPositive<T>(head_pointer_);
+    return temp;
 }
 
 template <typename T>
-typename Vector<T>::positive_iterator Vector<T>::End() noexcept{
-	if(tail_pointer_ == nullptr) return valerij::VectorPositiveIterator<T>(nullptr);
-	return valerij::VectorPositiveIterator<T>(tail_pointer_ + 1);
+typename Vector<T>::iterator Vector<T>::End() noexcept{
+    dzerzhinsky::VectorIterator<T> temp;
+	if(tail_pointer_ == nullptr) temp.vector_iterator_base_pointer_ = new dzerzhinsky::lenin::VectorIteratorPositive<T>(nullptr);
+    else                         temp.vector_iterator_base_pointer_ = new dzerzhinsky::lenin::VectorIteratorPositive<T>(tail_pointer_+1);
+    return temp;
 }
 
 template <typename T>
-typename Vector<T>::negative_iterator Vector<T>::RBegin() noexcept{
-	return valerij::VectorNegativeIterator<T>(tail_pointer_);
+typename Vector<T>::iterator Vector<T>::RBegin() noexcept{
+    dzerzhinsky::VectorIterator<T> temp;
+    temp.vector_iterator_base_pointer_ = new dzerzhinsky::lenin::VectorIteratorNegative<T>(tail_pointer_);
+    return temp;
 }
 
 template <typename T>
-typename Vector<T>::negative_iterator Vector<T>::REnd() noexcept{
-	if(head_pointer_ == nullptr) return valerij::VectorNegativeIterator<T>(nullptr);
-	return valerij::VectorNegativeIterator<T>(head_pointer_ - 1);
+typename Vector<T>::iterator Vector<T>::REnd() noexcept{
+    dzerzhinsky::VectorIterator<T> temp;
+	if(head_pointer_ == nullptr) temp.vector_iterator_base_pointer_ = new dzerzhinsky::lenin::VectorIteratorNegative<T>(nullptr);
+    else                         temp.vector_iterator_base_pointer_ = new dzerzhinsky::lenin::VectorIteratorNegative<T>(head_pointer_ - 1);
+	return temp;
 }
 
 template <typename T>
@@ -765,11 +802,81 @@ T Vector<T>::PopBack(){
 }
 
 template <typename T>
-typename Vector<T>::positive_iterator Vector<T>::Insert(positive_iterator iterator,
+typename Vector<T>::iterator Vector<T>::Insert(iterator var_iterator,
+                                               const T &element){
+    if(var_iterator.vector_iterator_base_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator!");
+    else if(typeid(*(var_iterator.vector_iterator_base_pointer_)) ==
+            typeid(dzerzhinsky::lenin::VectorIteratorPositive<T>))
+        return InsertPositive(var_iterator,element);
+    else
+        return InsertNegative(var_iterator,element);
+}
+
+template <typename T>
+typename Vector<T>::iterator Vector<T>::Insert(iterator var_iterator,
+                                               const number_type size,const T &element){
+    if(var_iterator.vector_iterator_base_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator!");
+    else if(typeid(*(var_iterator.vector_iterator_base_pointer_)) ==
+            typeid(dzerzhinsky::lenin::VectorIteratorPositive<T>))
+        return InsertPositive(var_iterator,size,element);
+    else
+        return InsertNegative(var_iterator,size,element);
+}
+
+template <typename T>
+template <typename Iterator>
+typename Vector<T>::iterator Vector<T>::Insert(iterator var_iterator,
+                                               const Iterator iterator_first,
+                                               const Iterator iterator_second){
+    if(var_iterator.vector_iterator_base_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator!");
+    else if(typeid(*(var_iterator.vector_iterator_base_pointer_)) ==
+            typeid(dzerzhinsky::lenin::VectorIteratorPositive<T>))
+        return InsertPositive(var_iterator,iterator_first,iterator_second);
+    else
+        return InsertNegative(var_iterator,iterator_first,iterator_second);
+}
+
+template <typename T>
+typename Vector<T>::iterator Vector<T>::Erase(iterator var_iterator){
+    if(var_iterator.vector_iterator_base_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator!");
+    else if(typeid(*(var_iterator.vector_iterator_base_pointer_)) ==
+            typeid(dzerzhinsky::lenin::VectorIteratorPositive<T>))
+        return ErasePositive(var_iterator);
+    else
+        return EraseNegative(var_iterator);
+}
+
+template <typename T>
+typename Vector<T>::iterator Vector<T>::Erase(iterator iterator_first,
+                                              iterator iterator_second){
+    if(iterator_first.vector_iterator_base_pointer_ == nullptr ||
+       iterator_second.vector_iterator_base_pointer_ == nullptr)
+            throw new std::runtime_error("NULL Iterator!");
+    else if(typeid(*(iterator_first.vector_iterator_base_pointer_)) ==
+            typeid(dzerzhinsky::lenin::VectorIteratorPositive<T>) &&
+            typeid(*(iterator_second.vector_iterator_base_pointer_)) ==
+            typeid(dzerzhinsky::lenin::VectorIteratorPositive<T>))
+        return ErasePositive(iterator_first,iterator_second);
+    else if(typeid(*(iterator_first.vector_iterator_base_pointer_)) ==
+            typeid(dzerzhinsky::lenin::VectorIteratorNegative<T>) &&
+            typeid(*(iterator_second.vector_iterator_base_pointer_)) ==
+            typeid(dzerzhinsky::lenin::VectorIteratorNegative<T>))
+        return EraseNegative(iterator_first,iterator_second);
+    else
+        throw new std::runtime_error("Wrong Iterator Type!");
+}
+
+
+template <typename T>
+typename Vector<T>::iterator Vector<T>::InsertPositive(iterator var_iterator,
 													    const T &element){	
 	if(allocated_size_ == 0) {PushBack(element); return this->Begin();}
 	
-	int32_t difference = iterator - this->Begin();
+	int32_t difference = var_iterator - this->Begin();
 	if(difference < 0) throw new std::runtime_error("Wrong Iterator Position ----Insert(iterator,element)");
 	allocator_construct(++tail_pointer_,element);
 	++element_size_;
@@ -781,12 +888,12 @@ typename Vector<T>::positive_iterator Vector<T>::Insert(positive_iterator iterat
 }
 
 template <typename T>
-typename Vector<T>::positive_iterator Vector<T>::Insert(positive_iterator iterator,
-														const number_type size,const T &element){
+typename Vector<T>::iterator Vector<T>::InsertPositive(iterator var_iterator,
+											   const number_type size,const T &element){
 	if(size == 0) throw new std::runtime_error("Wrong Insert Number ---- Insert(iterator,size,element)");
 	if(allocated_size_ == 0){this->Assgin(size,element); return this->Begin();}
 	
-	int32_t difference = iterator - this->Begin();
+	int32_t difference = var_iterator - this->Begin();
 	if(difference < 0) throw new std::runtime_error("Wrong Iterator Position ----Insert()");
 	while(allocated_size_ <= size + element_size_) EnlargeMemory();
 	
@@ -815,15 +922,15 @@ typename Vector<T>::positive_iterator Vector<T>::Insert(positive_iterator iterat
 
 template <typename T>
 template <typename Iterator>
-typename Vector<T>::positive_iterator Vector<T>::Insert(positive_iterator iterator,
-													    const Iterator iterator_first,const Iterator iterator_second){
+typename Vector<T>::iterator Vector<T>::InsertPositive(iterator var_iterator,
+													   const Iterator iterator_first,const Iterator iterator_second){
 	size_t size = 0;
 	for(Iterator iterator_temp = iterator_first;iterator_temp != iterator_second; ++iterator_temp)
 		++size;
 	
 	if(allocated_size_ == 0){this->Assign(iterator_first,iterator_second); return this->Begin();}
 	
-	int32_t difference = iterator - this->Begin();
+	int32_t difference = var_iterator - this->Begin();
 	if(difference < 0) throw new std::runtime_error("Wrong Iterator Position ----Insert()");
 	while(allocated_size_ <= size + element_size_) EnlargeMemory();
 	
@@ -855,11 +962,11 @@ typename Vector<T>::positive_iterator Vector<T>::Insert(positive_iterator iterat
 }
 
 template <typename T>
-typename Vector<T>::positive_iterator Vector<T>::Erase(positive_iterator iterator){
+typename Vector<T>::iterator Vector<T>::ErasePositive(iterator var_iterator){
 	if(element_size_ == 0) throw new std::runtime_error("No Element -----Erase(iterator)");
-	if(element_size_ == 1 && iterator == this->Begin()){ this->Clear(); return this->Begin();}
+	if(element_size_ == 1 && var_iterator == this->Begin()){ this->Clear(); return this->Begin();}
 	
-	int32_t difference = iterator - this->Begin();
+	int32_t difference = var_iterator - this->Begin();
 	if(difference < 0 || difference >= static_cast<int32_t>(element_size_))
 		throw new std::runtime_error("Wrong Iterator Position ----Erase(iterator)");
 	
@@ -872,8 +979,8 @@ typename Vector<T>::positive_iterator Vector<T>::Erase(positive_iterator iterato
 }
 
 template <typename T>
-typename Vector<T>::positive_iterator Vector<T>::Erase(positive_iterator iterator_first,
-													   positive_iterator iterator_second){
+typename Vector<T>::iterator Vector<T>::ErasePositive(iterator iterator_first,
+													  iterator iterator_second){
 	int32_t first_difference = iterator_first - this->Begin();
 	int32_t second_difference = iterator_second - this->Begin();
 	if(first_difference >= second_difference || first_difference < 0 || second_difference <= 0)
@@ -890,11 +997,11 @@ typename Vector<T>::positive_iterator Vector<T>::Erase(positive_iterator iterato
 }
 
 template <typename T>
-typename Vector<T>::negative_iterator Vector<T>::Insert(negative_iterator iterator,
+typename Vector<T>::iterator Vector<T>::InsertNegative(iterator var_iterator,
 														const T &element){	
 	if(allocated_size_ == 0) {PushBack(element); return this->RBegin();}
 	
-	int32_t difference = iterator - this->RBegin();
+	int32_t difference = var_iterator - this->RBegin();
 	if(difference < 0) throw new std::runtime_error("Wrong Iterator Position ----Insert(iterator,element)");
 	allocator_construct(++tail_pointer_,element);
 	++element_size_;
@@ -906,12 +1013,12 @@ typename Vector<T>::negative_iterator Vector<T>::Insert(negative_iterator iterat
 }
 
 template <typename T>
-typename Vector<T>::negative_iterator Vector<T>::Insert(negative_iterator iterator,
-														const number_type size,const T &element){
+typename Vector<T>::iterator Vector<T>::InsertNegative(iterator var_iterator,
+													   const number_type size,const T &element){
 	if(size == 0) throw new std::runtime_error("Wrong Insert Number ---- Insert(iterator,size,element)");
 	if(allocated_size_ == 0){this->Assgin(size,element); return this->RBegin();}
 	
-	int32_t difference = iterator - this->RBegin();
+	int32_t difference = var_iterator - this->RBegin();
 	if(difference < 0) throw new std::runtime_error("Wrong Iterator Position ----Insert()");
 	while(allocated_size_ <= size + element_size_) EnlargeMemory();
 	
@@ -940,7 +1047,7 @@ typename Vector<T>::negative_iterator Vector<T>::Insert(negative_iterator iterat
 
 template <typename T>
 template <typename Iterator>
-typename Vector<T>::negative_iterator Vector<T>::Insert(negative_iterator iterator,
+typename Vector<T>::iterator Vector<T>::InsertNegative(iterator var_iterator,
 														const Iterator iterator_first,const Iterator iterator_second){
 	size_t size = 0;
 	for(Iterator iterator_temp = iterator_first;iterator_temp != iterator_second; ++iterator_temp)
@@ -948,7 +1055,7 @@ typename Vector<T>::negative_iterator Vector<T>::Insert(negative_iterator iterat
 	
 	if(allocated_size_ == 0){this->Assign(iterator_first,iterator_second); return this->RBegin();}
 	
-	int32_t difference = iterator - this->RBegin();
+	int32_t difference = var_iterator - this->RBegin();
 	if(difference < 0) throw new std::runtime_error("Wrong Iterator Position ----Insert()");
 	while(allocated_size_ <= size + element_size_) EnlargeMemory();
 
@@ -979,11 +1086,11 @@ typename Vector<T>::negative_iterator Vector<T>::Insert(negative_iterator iterat
 }
 
 template <typename T>
-typename Vector<T>::negative_iterator Vector<T>::Erase(negative_iterator iterator){
+typename Vector<T>::iterator Vector<T>::EraseNegative(iterator var_iterator){
 	if(element_size_ == 0) throw new std::runtime_error("No Element -----Erase(iterator)");
-	if(element_size_ == 1 && iterator == this->RBegin()){ this->Clear(); return this->RBegin();}
+	if(element_size_ == 1 && var_iterator == this->RBegin()){ this->Clear(); return this->RBegin();}
 	
-	int32_t difference = iterator - this->RBegin();
+	int32_t difference = var_iterator - this->RBegin();
 	if(difference < 0 || difference >= static_cast<int32_t>(element_size_))
 		throw new std::runtime_error("Wrong Iterator Position ----Erase(iterator)");
 	
@@ -996,8 +1103,8 @@ typename Vector<T>::negative_iterator Vector<T>::Erase(negative_iterator iterato
 }
 
 template <typename T>
-typename Vector<T>::negative_iterator Vector<T>::Erase(negative_iterator iterator_first,
-													   negative_iterator iterator_second){
+typename Vector<T>::iterator Vector<T>::EraseNegative(iterator iterator_first,
+													  iterator iterator_second){
 	int32_t first_difference = iterator_first - this->RBegin();
 	int32_t second_difference = iterator_second - this->RBegin();
 	if(first_difference >= second_difference || first_difference < 0 || second_difference <= 0)
