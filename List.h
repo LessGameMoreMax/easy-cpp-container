@@ -93,7 +93,7 @@ ListIteratorPositive<T>::ListIteratorPositive(const ListIteratorPositive &anothe
 template <typename T>
 ListIteratorPositive<T>::ListIteratorPositive(ListIteratorPositive &&another){
     this->set_node_pointer(another.get_node_pointer());
-    another.set_pointer(nullptr);
+    another.set_node_pointer(nullptr);
 }
 
 template <typename T>
@@ -546,7 +546,7 @@ template <typename T>
 List<T>::List(const List<T> &another){
 	this->Initialize();
 	element_size_ = another.element_size_;
-	for(dzerzhinsky::lenin::ListNode<T> *temp = another.beyond_tail_node_->next_node_;
+	for(dzerzhinsky::lenin::ListNode<T> *temp = another.beyond_head_node_->next_node_;
 			temp != another.beyond_tail_node_;temp = temp->next_node_){
 		dzerzhinsky::lenin::ListNode<T> *temp_node = new dzerzhinsky::lenin::ListNode<T>();
 		temp_node->element_pointer_ = new T(*(temp->element_pointer_));
@@ -583,7 +583,7 @@ List<T>& List<T>::operator=(const List &another){
 	if(&another == this) return *this;
 	this->Clear();
 	element_size_ = another.element_size_;
-	for(dzerzhinsky::lenin::ListNode<T> *temp = another.beyond_tail_node_->next_node_;
+	for(dzerzhinsky::lenin::ListNode<T> *temp = another.beyond_head_node_->next_node_;
 		temp != another.beyond_tail_node_;temp = temp->next_node_){
 		dzerzhinsky::lenin::ListNode<T> *temp_node = new dzerzhinsky::lenin::ListNode<T>();
 		temp_node->element_pointer_ = new T(*(temp->element_pointer_));
