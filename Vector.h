@@ -617,7 +617,7 @@ Vector<T>& Vector<T>::operator=(const Vector<T> &another){
 	tail_pointer_ = head_pointer_ + element_size_ - 1;
 	
 	for(size_t i = 0; i != element_size_; ++i)
-		allocator_.construct(head_pointer_ + i,*(another.head_pointer + i));
+		allocator_.construct(head_pointer_ + i,*(another.head_pointer_ + i));
 	return *this;
 }
 

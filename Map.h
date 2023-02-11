@@ -4,6 +4,8 @@
 #include <initializer_list>
 #include "Pair.h"
 #include "Function.h"
+
+#include "Vector.h"
 namespace sablin{
 
 template <typename Key,typename Value,typename Compare>
@@ -24,6 +26,7 @@ public:
 public:
     MapNode() = default;
     MapNode(const Key&,Value&);
+    MapNode(Key&&,Value&&);
     MapNode(const MapNode&)            = delete;
     MapNode(MapNode&&)                 = delete;
     MapNode& operator=(const MapNode&) = delete;
@@ -33,6 +36,12 @@ public:
 
 template <typename Key,typename Value>
 MapNode<Key,Value>::MapNode(const Key &key,Value &value){
+    element_pointer_ = new Pair<Key,Value>(key,value);
+    parent_node_ = left_node_ = right_node_ = nullptr;
+}
+
+template <typename Key,typename Value>
+MapNode<Key,Value>::MapNode(Key &&key,Value &&value){
     element_pointer_ = new Pair<Key,Value>(key,value);
     parent_node_ = left_node_ = right_node_ = nullptr;
 }
@@ -72,8 +81,8 @@ public:
 
     MapNode<Key,Value>* GetSuccessorNode() const;
     MapNode<Key,Value>* GetPredecessorNode() const;
-    MapNode<Key,Value>* GetMaximumNode(const MapNode<Key,Value>*) const;
-    MapNode<Key,Value>* GetMinimumNode(const MapNode<Key,Value>*) const;
+    MapNode<Key,Value>* GetMaximumNode(MapNode<Key,Value>*) const;
+    MapNode<Key,Value>* GetMinimumNode(MapNode<Key,Value>*) const;
 };
 
 template <typename Key,typename Value>
@@ -120,7 +129,7 @@ void MapIteratorBase<Key,Value>::UnsetAll(){
 }
 
 template <typename Key,typename Value>
-MapNode<Key,Value>* MapIteratorBase<Key,Value>::GetMaximumNode(const MapNode<Key,Value> *root_node) const{
+MapNode<Key,Value>* MapIteratorBase<Key,Value>::GetMaximumNode(MapNode<Key,Value> *root_node) const{
     MapNode<Key,Value> *temp_node = root_node;
     while(temp_node->right_node_->element_pointer_ != nullptr)
         temp_node = temp_node->right_node_;
@@ -128,7 +137,7 @@ MapNode<Key,Value>* MapIteratorBase<Key,Value>::GetMaximumNode(const MapNode<Key
 }
 
 template <typename Key,typename Value>
-MapNode<Key,Value>* MapIteratorBase<Key,Value>::GetMinimumNode(const MapNode<Key,Value> *root_node) const{
+MapNode<Key,Value>* MapIteratorBase<Key,Value>::GetMinimumNode(MapNode<Key,Value> *root_node) const{
     MapNode<Key,Value> *temp_node = root_node;
     while(temp_node->left_node_->element_pointer_ != nullptr)
         temp_node = temp_node->left_node_;
@@ -542,6 +551,29 @@ public:
     typedef size_t                                      number_type;
     typedef Compare                                     key_compare; 
     typedef dzerzhinsky::MapIterator<Key,Value,Compare> iterator;
+
+    //Debug--------------------------------------------------------------
+    void PrintAll(){
+        if(root_node_ == nullptr){
+            std::cout << "TREE IS NULL!" << std::endl;
+            return;
+        }
+        std::cout << "Element Size Is :" << element_size_ << std::endl;
+        auto temp_node = root_node_;
+        Vector<dzerzhinsky::lenin::MapNode<Key,Value>*> node_vector{temp_node};
+        int i = 0;
+        while(!node_vector.IsEmpty()){
+            Vector<dzerzhinsky::lenin::MapNode<Key,Value>*> node_vector_temp;
+            for(auto iter = node_vector.Begin();iter != node_vector.End(); ++iter){
+                std::cout << "depth: " << i << " is_black: " << (*iter)->is_black_ << " key: " << (*iter)->element_pointer_->first
+                    << " value: " << (*iter)->element_pointer_->second << std::endl;
+                if((*iter)->left_node_ != nil_node_) node_vector_temp.PushBack((*iter)->left_node_);
+                if((*iter)->right_node_ != nil_node_) node_vector_temp.PushBack((*iter)->right_node_);
+            }
+            node_vector = node_vector_temp;
+        }
+    }
+    //Debug--------------------------------------------------------------
 private:
     number_type element_size_;
     key_compare compare_func_;
@@ -584,10 +616,11 @@ public:
 
     mapped_type& operator[](const key_type&);
 
-    iterator Insert(const value_type&);
+    iterator Insert(const Pair<Key,Value>&);
+    iterator Insert(Pair<Key,Value>&&);
     template <typename Iterator>
     void Insert(Iterator,Iterator);
-    void Insert(std::initializer_list<value_type>);
+    void Insert(std::initializer_list<Pair<Key,Value>>);
 };
 
 template <typename Key,typename Value,typename Compare>
@@ -609,8 +642,8 @@ void Map<Key,Value,Compare>::ReleaseResource(){
 
 template <typename Key,typename Value,typename Compare>
 void Map<Key,Value,Compare>::RecursionRelease(dzerzhinsky::lenin::MapNode<Key,Value> *node_pointer){
-   if(node_pointer.left_node_ != nil_node_) RecursionRelease(node_pointer.left_node_);
-   if(node_pointer.right_node_ != nil_node_) RecursionRelease(node_pointer.right_node_);
+   if(node_pointer->left_node_ != nil_node_) RecursionRelease(node_pointer->left_node_);
+   if(node_pointer->right_node_ != nil_node_) RecursionRelease(node_pointer->right_node_);
    delete node_pointer;
    return;
 }
@@ -789,7 +822,7 @@ typename Map<Key,Value,Compare>::mapped_type& Map<Key,Value,Compare>::operator[]
 }
 
 template <typename Key,typename Value,typename Compare>
-typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Insert(const value_type &insert_pair){
+typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Insert(const Pair<Key,Value> &insert_pair){
     dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer = Search(insert_pair.first);
     if(temp_pointer != nullptr){
         temp_pointer->element_pointer_->second = insert_pair.second;
@@ -833,6 +866,50 @@ typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Insert(const v
 }
 
 template <typename Key,typename Value,typename Compare>
+typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Insert(Pair<Key,Value> &&insert_pair){
+    dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer = Search(insert_pair.first);
+    if(temp_pointer != nullptr){
+        temp_pointer->element_pointer_->second = std::move(insert_pair.second);
+        Map<Key,Value,Compare>::iterator iterator_temp;
+        iterator_temp.map_iterator_base_pointer_ = new dzerzhinsky::lenin::MapIteratorPositive<Key,Value>(temp_pointer,false,false);
+        return iterator_temp;
+    }
+    if(root_node_ == nullptr){
+        root_node_ = new dzerzhinsky::lenin::MapNode<Key,Value>(std::move(insert_pair.first),std::move(insert_pair.second));
+        root_node_->parent_node_ = nil_node_;
+        root_node_->left_node_   = nil_node_;
+        root_node_->right_node_  = nil_node_;
+        ++element_size_;
+        Map<Key,Value,Compare>::iterator iterator_temp;
+        iterator_temp.map_iterator_base_pointer_ = new dzerzhinsky::lenin::MapIteratorPositive<Key,Value>(root_node_,false,false);
+        return iterator_temp;
+    }
+    dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer_one = root_node_;
+    dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer_two = nullptr;
+    while(temp_pointer_one != nil_node_){
+        temp_pointer_two = temp_pointer_one;
+        if(compare_func_(insert_pair.first,temp_pointer_one->element_pointer_->first))
+            temp_pointer_one = temp_pointer_one->left_node_;
+        else
+            temp_pointer_one = temp_pointer_one->right_node_;
+    }
+    dzerzhinsky::lenin::MapNode<Key,Value>* new_node = new dzerzhinsky::lenin::MapNode<Key,Value>(std::move(insert_pair.first),std::move(insert_pair.second));
+    new_node->parent_node_ = temp_pointer_two;
+    if(compare_func_(insert_pair.first,new_node->element_pointer_->first))
+        temp_pointer_two->left_node_ = new_node;
+    else
+        temp_pointer_two->right_node_ = new_node;
+    new_node->left_node_ = nil_node_;
+    new_node->right_node_ = nil_node_;
+    new_node->is_black_ = false;
+    InsertFixUp(new_node);
+    ++element_size_;
+    Map<Key,Value,Compare>::iterator iterator_temp;
+    iterator_temp.map_iterator_base_pointer_ = new dzerzhinsky::lenin::MapIteratorPositive<Key,Value>(new_node,false,false);
+    return iterator_temp;
+}
+
+template <typename Key,typename Value,typename Compare>
 template <typename Iterator>
 void Map<Key,Value,Compare>::Insert(Iterator iterator_first,Iterator iterator_second){
     for(Iterator iterator_temp = iterator_first;iterator_temp != iterator_second; ++iterator_temp)
@@ -840,7 +917,7 @@ void Map<Key,Value,Compare>::Insert(Iterator iterator_first,Iterator iterator_se
 }
 
 template <typename Key,typename Value,typename Compare>
-void Map<Key,Value,Compare>::Insert(std::initializer_list<value_type> list){
+void Map<Key,Value,Compare>::Insert(std::initializer_list<Pair<Key,Value>> list){
    number_type size = list.size();
    if(size == 0) return;
    for(number_type i = 0;i != size; ++i)
@@ -866,8 +943,8 @@ void Map<Key,Value,Compare>::InsertFixUp(dzerzhinsky::lenin::MapNode<Key,Value> 
                 RightRotate(new_node);
             }
         }else{
-            dzerzhinsky::lenin::MapNode<Key,Value> *temp_node = new_node->parent_node->parent_node_->left_node_;
-            if(!temp_node->is_balck){
+            dzerzhinsky::lenin::MapNode<Key,Value> *temp_node = new_node->parent_node_->parent_node_->left_node_;
+            if(!temp_node->is_black_){
                 new_node->parent_node_->is_black_ = true;
                 temp_node->is_black_ = true;
                 new_node->parent_node_->parent_node_->is_black_ = false;
@@ -876,7 +953,7 @@ void Map<Key,Value,Compare>::InsertFixUp(dzerzhinsky::lenin::MapNode<Key,Value> 
                 new_node = new_node->parent_node_;
                 RightRotate(new_node);
             }else{
-                new_node->parent_node_->is_balck_ = true;
+                new_node->parent_node_->is_black_ = true;
                 new_node->parent_node_->parent_node_->is_black_ = false;
                 LeftRotate(new_node);
             }

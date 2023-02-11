@@ -1,11 +1,12 @@
 #include <iostream>
-#include "Function.h"
+#include "Map.h"
 
 using namespace std;
 using namespace sablin;
 
 int main(){
-    Less<int> function;
-    cout << function(1,2) << endl;
+    Map<int,string> map_one;
+    map_one.Insert(MakePair<int,string>(1,"1"));
+    map_one.PrintAll();
     return 0;
 }
