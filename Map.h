@@ -587,6 +587,8 @@ private:
     dzerzhinsky::lenin::MapNode<Key,Value>* GetMaxNode(dzerzhinsky::lenin::MapNode<Key,Value>*);
     dzerzhinsky::lenin::MapNode<Key,Value>* Search(const key_type&) const;
     void InsertFixUp(dzerzhinsky::lenin::MapNode<Key,Value>*);
+    void LeftRotate(dzerzhinsky::lenin::MapNode<Key,Value>*);
+    void RightRotate(dzerzhinsky::lenin::MapNode<Key,Value>*);
 public:
     explicit Map(const key_compare& compare_func = key_compare());
     template <typename Iterator>
@@ -676,6 +678,40 @@ dzerzhinsky::lenin::MapNode<Key,Value>* Map<Key,Value,Compare>::Search(const key
        else                                                         temp_pointer = temp_pointer->right_node_;
     if(temp_pointer->element_pointer_ == nullptr) return nullptr;
     return temp_pointer;
+}
+
+template <typename Key,typename Value,typename Compare>
+void Map<Key,Value,Compare>::LeftRotate(dzerzhinsky::lenin::MapNode<Key,Value> *node_pointer){
+    dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer = node_pointer->right_node_;
+    node_pointer->right_node_ = temp_pointer->left_node_;
+    if(temp_pointer->left_node_ != nil_node_)
+        temp_pointer->left_node_->parent_node_ = node_pointer;
+    temp_pointer->parent_node_ = node_pointer->parent_node_;
+    if(node_pointer->parent_node_ == nil_node_)
+        root_node_ = temp_pointer;
+    else if(node_pointer == node_pointer->parent_node_->left_node_)
+        node_pointer->parent_node_->left_node_ = temp_pointer;
+    else
+        node_pointer->parent_node_->right_node_ = temp_pointer;
+    temp_pointer->left_node_ = node_pointer;
+    node_pointer->parent_node_ = temp_pointer;
+}
+
+template <typename Key,typename Value,typename Compare>
+void Map<Key,Value,Compare>::RightRotate(dzerzhinsky::lenin::MapNode<Key,Value> *node_pointer){
+    dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer = node_pointer->parent_node_;
+    temp_pointer->left_node_ = node_pointer->right_node_;
+    if(node_pointer->right_node_ != nil_node_)
+        node_pointer->right_node_->parent_node_ = temp_pointer;
+    node_pointer->parent_node_ = temp_pointer->parent_node_;
+    if(temp_pointer->parent_node_ == nil_node_)
+      root_node_ = node_pointer;
+    else if(temp_pointer == temp_pointer->parent_node_->left_node_)
+        temp_pointer->parent_node_->left_node_ = node_pointer;
+    else
+        temp_pointer->parent_node_->right_node_ = node_pointer;
+    node_pointer->right_node_ = temp_pointer;
+    temp_pointer->parent_node_ = node_pointer;
 }
 
 
