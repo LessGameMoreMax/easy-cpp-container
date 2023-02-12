@@ -20,12 +20,6 @@ int main(){
         map_one.Insert(MakePair<int,string>(14,"14"));
         map_one.Insert(MakePair<int,string>(19,"19"));
         map_one.Insert(MakePair<int,string>(20,"20"));
-        cout << map_one.At(14) << endl;
-        cout << map_one.At(18) << endl;
-        cout << map_one[17] << endl;
-
-        map_one[33] = "33";
-
         map_one.PrintAll();
     return 0;
 }

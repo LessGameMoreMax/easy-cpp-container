@@ -517,7 +517,7 @@ Pair<Key,Value>* MapIterator<Key,Value,Compare>::operator->() const{
 template <typename Key,typename Value,typename Compare>
 bool operator==(const MapIterator<Key,Value,Compare> &lhs,const MapIterator<Key,Value,Compare> &rhs){
     if(lhs.map_iterator_base_pointer_ != nullptr && rhs.map_iterator_base_pointer_ != nullptr){
-        if(typeid(*(lhs.map_iterator_base_pointer_)) == typeid(*(rhs.map_iterator_base_pointer))){
+        if(typeid(*(lhs.map_iterator_base_pointer_)) == typeid(*(rhs.map_iterator_base_pointer_))){
             int result = lhs.map_iterator_base_pointer_->IsBeyondHead() + lhs.map_iterator_base_pointer_->IsBehindTail()
                             + rhs.map_iterator_base_pointer_->IsBeyondHead() + rhs.map_iterator_base_pointer_->IsBehindTail();
             if(result == 0) return lhs.map_iterator_base_pointer_->get_node_pointer() == rhs.map_iterator_base_pointer_->get_node_pointer();
