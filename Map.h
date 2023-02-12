@@ -570,6 +570,7 @@ public:
                 if((*iter)->left_node_ != nil_node_) node_vector_temp.PushBack((*iter)->left_node_);
                 if((*iter)->right_node_ != nil_node_) node_vector_temp.PushBack((*iter)->right_node_);
             }
+            ++i;
             node_vector = node_vector_temp;
         }
     }
@@ -699,19 +700,19 @@ void Map<Key,Value,Compare>::LeftRotate(dzerzhinsky::lenin::MapNode<Key,Value> *
 
 template <typename Key,typename Value,typename Compare>
 void Map<Key,Value,Compare>::RightRotate(dzerzhinsky::lenin::MapNode<Key,Value> *node_pointer){
-    dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer = node_pointer->parent_node_;
-    temp_pointer->left_node_ = node_pointer->right_node_;
-    if(node_pointer->right_node_ != nil_node_)
-        node_pointer->right_node_->parent_node_ = temp_pointer;
-    node_pointer->parent_node_ = temp_pointer->parent_node_;
-    if(temp_pointer->parent_node_ == nil_node_)
-      root_node_ = node_pointer;
-    else if(temp_pointer == temp_pointer->parent_node_->left_node_)
-        temp_pointer->parent_node_->left_node_ = node_pointer;
+    dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer = node_pointer->left_node_;
+    node_pointer->left_node_ = temp_pointer->right_node_;
+    if(temp_pointer->right_node_ != nil_node_)
+        temp_pointer->right_node_->parent_node_ = node_pointer;
+    temp_pointer->parent_node_ = node_pointer->parent_node_;
+    if(node_pointer->parent_node_ == nil_node_)
+        root_node_ = temp_pointer;
+    else if(node_pointer == node_pointer->parent_node_->left_node_)
+        node_pointer->parent_node_->left_node_ = temp_pointer;
     else
-        temp_pointer->parent_node_->right_node_ = node_pointer;
-    node_pointer->right_node_ = temp_pointer;
-    temp_pointer->parent_node_ = node_pointer;
+        node_pointer->parent_node_->right_node_ = temp_pointer;
+    temp_pointer->right_node_ = node_pointer;
+    node_pointer->parent_node_ = temp_pointer;
 }
 
 
@@ -850,24 +851,17 @@ template <typename Key,typename Value,typename Compare>
 typename Map<Key,Value,Compare>::mapped_type& Map<Key,Value,Compare>::operator[](const key_type &key){
     dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer = Search(key);
     if(temp_pointer == nullptr){
-        auto new_pair = MakePair<Key,Value>(key,Value());
+        auto new_pair = MakePair<Key,Value>(static_cast<const Key>(key),Value());
         iterator temp_iterator = this->Insert(new_pair);
-        temp_pointer = temp_iterator.map_iterator_base_pointer_;
+        temp_pointer = temp_iterator.map_iterator_base_pointer_->get_node_pointer();
     }
-    return temp_pointer->element_size_->second;
+    return temp_pointer->element_pointer_->second;
 }
 
 template <typename Key,typename Value,typename Compare>
 typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Insert(const Pair<Key,Value> &insert_pair){
-    dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer = Search(insert_pair.first);
-    if(temp_pointer != nullptr){
-        temp_pointer->element_pointer_->second = insert_pair.second;
-        Map<Key,Value,Compare>::iterator iterator_temp;
-        iterator_temp.map_iterator_base_pointer_ = new dzerzhinsky::lenin::MapIteratorPositive<Key,Value>(temp_pointer,false,false);
-        return iterator_temp;
-    }
     if(root_node_ == nullptr){
-        root_node_ = new dzerzhinsky::lenin::MapNode<Key,Value>(insert_pair.first,insert_pair.second);
+        root_node_ = new dzerzhinsky::lenin::MapNode<Key,Value>(insert_pair.first,const_cast<Value&>(insert_pair.second));
         root_node_->parent_node_ = nil_node_;
         root_node_->left_node_   = nil_node_;
         root_node_->right_node_  = nil_node_;
@@ -876,16 +870,23 @@ typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Insert(const P
         iterator_temp.map_iterator_base_pointer_ = new dzerzhinsky::lenin::MapIteratorPositive<Key,Value>(root_node_,false,false);
         return iterator_temp;
     }
+    dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer = Search(insert_pair.first);
+    if(temp_pointer != nullptr){
+        temp_pointer->element_pointer_->second = insert_pair.second;
+        Map<Key,Value,Compare>::iterator iterator_temp;
+        iterator_temp.map_iterator_base_pointer_ = new dzerzhinsky::lenin::MapIteratorPositive<Key,Value>(temp_pointer,false,false);
+        return iterator_temp;
+    }
     dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer_one = root_node_;
     dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer_two = nullptr;
     while(temp_pointer_one != nil_node_){
         temp_pointer_two = temp_pointer_one;
-        if(compare_func_(insert_pair.first,temp_pointer_one->element_pointer_->first))
+        if(compare_func_(insert_pair.first,temp_pointer_two->element_pointer_->first))
             temp_pointer_one = temp_pointer_one->left_node_;
         else
             temp_pointer_one = temp_pointer_one->right_node_;
     }
-    dzerzhinsky::lenin::MapNode<Key,Value>* new_node = new dzerzhinsky::lenin::MapNode<Key,Value>(insert_pair.first,insert_pair.second);
+    dzerzhinsky::lenin::MapNode<Key,Value>* new_node = new dzerzhinsky::lenin::MapNode<Key,Value>(insert_pair.first,const_cast<Value&>(insert_pair.second));
     new_node->parent_node_ = temp_pointer_two;
     if(compare_func_(insert_pair.first,new_node->element_pointer_->first))
         temp_pointer_two->left_node_ = new_node;
@@ -903,13 +904,6 @@ typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Insert(const P
 
 template <typename Key,typename Value,typename Compare>
 typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Insert(Pair<Key,Value> &&insert_pair){
-    dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer = Search(insert_pair.first);
-    if(temp_pointer != nullptr){
-        temp_pointer->element_pointer_->second = std::move(insert_pair.second);
-        Map<Key,Value,Compare>::iterator iterator_temp;
-        iterator_temp.map_iterator_base_pointer_ = new dzerzhinsky::lenin::MapIteratorPositive<Key,Value>(temp_pointer,false,false);
-        return iterator_temp;
-    }
     if(root_node_ == nullptr){
         root_node_ = new dzerzhinsky::lenin::MapNode<Key,Value>(std::move(insert_pair.first),std::move(insert_pair.second));
         root_node_->parent_node_ = nil_node_;
@@ -918,6 +912,13 @@ typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Insert(Pair<Ke
         ++element_size_;
         Map<Key,Value,Compare>::iterator iterator_temp;
         iterator_temp.map_iterator_base_pointer_ = new dzerzhinsky::lenin::MapIteratorPositive<Key,Value>(root_node_,false,false);
+        return iterator_temp;
+    }
+    dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer = Search(insert_pair.first);
+    if(temp_pointer != nullptr){
+        temp_pointer->element_pointer_->second = std::move(insert_pair.second);
+        Map<Key,Value,Compare>::iterator iterator_temp;
+        iterator_temp.map_iterator_base_pointer_ = new dzerzhinsky::lenin::MapIteratorPositive<Key,Value>(temp_pointer,false,false);
         return iterator_temp;
     }
     dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer_one = root_node_;
@@ -931,7 +932,7 @@ typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Insert(Pair<Ke
     }
     dzerzhinsky::lenin::MapNode<Key,Value>* new_node = new dzerzhinsky::lenin::MapNode<Key,Value>(std::move(insert_pair.first),std::move(insert_pair.second));
     new_node->parent_node_ = temp_pointer_two;
-    if(compare_func_(insert_pair.first,new_node->element_pointer_->first))
+    if(compare_func_(insert_pair.first,temp_pointer_two->element_pointer_->first))
         temp_pointer_two->left_node_ = new_node;
     else
         temp_pointer_two->right_node_ = new_node;
@@ -976,7 +977,7 @@ void Map<Key,Value,Compare>::InsertFixUp(dzerzhinsky::lenin::MapNode<Key,Value> 
             }else{
                 new_node->parent_node_->is_black_ = true;
                 new_node->parent_node_->parent_node_->is_black_ = false;
-                RightRotate(new_node);
+                RightRotate(new_node->parent_node_->parent_node_);
             }
         }else{
             dzerzhinsky::lenin::MapNode<Key,Value> *temp_node = new_node->parent_node_->parent_node_->left_node_;
@@ -991,7 +992,7 @@ void Map<Key,Value,Compare>::InsertFixUp(dzerzhinsky::lenin::MapNode<Key,Value> 
             }else{
                 new_node->parent_node_->is_black_ = true;
                 new_node->parent_node_->parent_node_->is_black_ = false;
-                LeftRotate(new_node);
+                LeftRotate(new_node->parent_node_->parent_node_);
             }
         }
     }
