@@ -616,6 +616,8 @@ public:
     bool IsEmpty() const;
     number_type Size() const;
 
+    iterator Find(const key_type&);
+
     mapped_type& At(const key_type&);
     const mapped_type& At(const key_type&) const;
 
@@ -627,7 +629,9 @@ public:
     void Insert(Iterator,Iterator);
     void Insert(std::initializer_list<Pair<Key,Value>>);
 
-    iterator Erase(const key_type&);
+    bool Erase(const key_type&);
+    iterator Erase(const iterator&);
+    iterator Erase(const iterator&,const iterator&);
 };
 
 template <typename Key,typename Value,typename Compare>
@@ -904,6 +908,14 @@ typename Map<Key,Value,Compare>::number_type Map<Key,Value,Compare>::Size() cons
 }
 
 template <typename Key,typename Value,typename Compare>
+typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Find(const key_type &key){
+    dzerzhinsky::lenin::MapNode<Key,Value> *temp_pointer = Search(key);
+    if(temp_pointer == nullptr) return this->End();
+    dzerzhinsky::MapIterator<Key,Value,Compare> temp;
+    temp.map_iterator_base_pointer_ = new dzerzhinsky::lenin::MapIteratorPositive<Key,Value>(temp_pointer,false,false);
+}
+
+template <typename Key,typename Value,typename Compare>
 typename Map<Key,Value,Compare>::mapped_type& Map<Key,Value,Compare>::At(const key_type &key){
     dzerzhinsky::lenin::MapNode<Key,Value>* temp_pointer = Search(key);
     if(temp_pointer == nullptr)
@@ -1072,14 +1084,14 @@ void Map<Key,Value,Compare>::InsertFixUp(dzerzhinsky::lenin::MapNode<Key,Value> 
 }
 
 template <typename Key,typename Value,typename Compare>
-typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Erase(const key_type &key){
+bool Map<Key,Value,Compare>::Erase(const key_type &key){
     dzerzhinsky::lenin::MapNode<Key,Value> *z_node = Search(key);
-    if(z_node == nullptr) throw new std::runtime_error("Key doesn't exist!");
+    if(z_node == nullptr) return false;
 
     if(element_size_ == 1){
         delete root_node_;
         this->Initialize(compare_func_);
-        return iterator();
+        return true;
     }
 
     dzerzhinsky::lenin::MapNode<Key,Value> *y_node = z_node;
@@ -1108,8 +1120,46 @@ typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Erase(const ke
     delete z_node;
     --element_size_;
     if(y_original_is_black) DeleteFixUp(x_node);
+    return true;
 }
 
+template <typename Key,typename Value,typename Compare>
+typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Erase(const typename Map<Key,Value,Compare>::iterator &iterator_first,
+                                                     const typename Map<Key,Value,Compare>::iterator &iterator_second){
+    typename Map<Key,Value,Compare>::iterator iterator_temp = const_cast<Map<Key,Value,Compare>::iterator&>(iterator_first);
+    typename Map<Key,Value,Compare>::iterator iterator_temp_temp = iterator_temp;
+    typename Map<Key,Value,Compare>::iterator iterator_result = iterator_temp_temp;
+    while(iterator_temp != iterator_second){
+        ++iterator_temp_temp;
+        iterator_result = Erase(iterator_temp);
+        iterator_temp = iterator_temp_temp;
+    }
+    return iterator_temp;
+}
+
+template <typename Key,typename Value,typename Compare>
+typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Erase(const typename Map<Key,Value,Compare>::iterator &iterator_target){
+    if(iterator_target.map_iterator_base_pointer_->IsBeyondHead() || iterator_target.map_iterator_base_pointer_->IsBehindTail())
+        throw new std::runtime_error("Wrong Iterator Position! ----- Erase(iterator)");
+    typename Map<Key,Value,Compare>::iterator iterator_result;
+    if(typeid(*iterator_target.map_iterator_base_pointer_) == typeid(dzerzhinsky::lenin::MapIteratorPositive<Key,Value>)){
+        dzerzhinsky::lenin::MapNode<Key,Value> *temp_node = 
+            iterator_target.map_iterator_base_pointer_->GetSuccessorNode();        
+        this->Erase(iterator_target->first);
+        if(temp_node == nullptr) return End();
+        iterator_result.map_iterator_base_pointer_ = new dzerzhinsky::lenin::MapIteratorPositive<Key,Value>(temp_node,false,false);
+        return iterator_result;
+    }else if(typeid(*iterator_target.map_iterator_base_pointer_) == typeid(dzerzhinsky::lenin::MapIteratorNegative<Key,Value>)){
+        dzerzhinsky::lenin::MapNode<Key,Value> *temp_node =
+            iterator_target.map_iterator_base_pointer_->GetPredecessorNode();
+        this->Erase(iterator_target->first);
+        if(temp_node == nullptr) return REnd();
+        iterator_result.map_iterator_base_pointer_ = new dzerzhinsky::lenin::MapIteratorNegative<Key,Value>(temp_node,false,false);
+        return iterator_result;
+    }else{
+        throw new std::runtime_error("Wrong Iterator! ----- Erase(iterator)");
+    }
+}
 
 }
 #endif
