@@ -590,6 +590,8 @@ private:
     void InsertFixUp(dzerzhinsky::lenin::MapNode<Key,Value>*);
     void LeftRotate(dzerzhinsky::lenin::MapNode<Key,Value>*);
     void RightRotate(dzerzhinsky::lenin::MapNode<Key,Value>*);
+    void Transplant(dzerzhinsky::lenin::MapNode<Key,Value>*,dzerzhinsky::lenin::MapNode<Key,Value>*);
+    void DeleteFixUp(dzerzhinsky::lenin::MapNode<Key,Value>*);
 public:
     explicit Map(const key_compare& compare_func = key_compare());
     template <typename Iterator>
@@ -624,6 +626,8 @@ public:
     template <typename Iterator>
     void Insert(Iterator,Iterator);
     void Insert(std::initializer_list<Pair<Key,Value>>);
+
+    iterator Erase(const key_type&);
 };
 
 template <typename Key,typename Value,typename Compare>
@@ -715,6 +719,74 @@ void Map<Key,Value,Compare>::RightRotate(dzerzhinsky::lenin::MapNode<Key,Value> 
     node_pointer->parent_node_ = temp_pointer;
 }
 
+template <typename Key,typename Value,typename Compare>
+void Map<Key,Value,Compare>::Transplant(dzerzhinsky::lenin::MapNode<Key,Value> *u_node,dzerzhinsky::lenin::MapNode<Key,Value> *v_node){
+    if(u_node->parent_node_ == nil_node_)
+        root_node_ = v_node;
+    else if(u_node == u_node->parent_node_->left_node_)
+        u_node->parent_node_->left_node_ = v_node;
+    else
+        u_node->parent_node_->right_node_ = v_node;
+    v_node->parent_node_ = u_node->parent_node_;
+}
+
+template <typename Key,typename Value,typename Compare>
+void Map<Key,Value,Compare>::DeleteFixUp(dzerzhinsky::lenin::MapNode<Key,Value> *x_node){
+    while(x_node != root_node_ && x_node->is_black_){
+        if(x_node == x_node->parent_node_->left_node_){
+            dzerzhinsky::lenin::MapNode<Key,Value> *w_node = x_node->parent_node_->right_node_;
+            if(!w_node->is_black_){
+                w_node->is_black_ = true;
+                x_node->parent_node_->is_black_ = false;
+                LeftRotate(x_node->parent_node_);
+                w_node = x_node->parent_node_->right_node_;
+            }
+            if(w_node->is_black_ && w_node->right_node_->is_black_){
+                w_node->is_black_ = false;
+                x_node = x_node->parent_node_;
+                continue;
+            }
+            if(w_node->right_node_->is_black_){
+                w_node->left_node_->is_black_ = true;
+                w_node->is_black_ = false;
+                RightRotate(w_node);
+                w_node = w_node->parent_node_->right_node_;
+                continue;
+            }
+            w_node->is_black_ = x_node->parent_node_->is_black_;
+            x_node->parent_node_->is_black_ = true;
+            w_node->right_node_->is_black_ = true;
+            LeftRotate(x_node->parent_node_);
+            break;
+        }else{
+            dzerzhinsky::lenin::MapNode<Key,Value> *w_node = x_node->parent_node_->left_node_;
+            if(!w_node->is_black_){
+                w_node->is_black_ = true;
+                x_node->parent_node_->is_black_ = false;
+                LeftRotate(x_node->parent_node_);
+                w_node = x_node->parent_node_->left_node_;
+            }
+            if(w_node->is_black_ && w_node->left_node_->is_black_){
+                w_node->is_black_ = false;
+                x_node = x_node->parent_node_;
+                continue;
+            }
+            if(w_node->left_node_->is_black_){
+                w_node->right_node_->is_black_ = true;
+                w_node->is_black_ = false;
+                LeftRotate(w_node);
+                w_node = w_node->parent_node_->left_node_;
+                continue;
+            }
+            w_node->is_black_ = x_node->parent_node_->is_black_;
+            x_node->parent_node_->is_black_ = true;
+            w_node->left_node_->is_black_ = true;
+            RightRotate(x_node->parent_node_);
+            break;
+        }
+    }
+    x_node->is_black_ = true;
+}
 
 template <typename Key,typename Value,typename Compare>
 Map<Key,Value,Compare>::Map(const key_compare& compare_func){
@@ -998,6 +1070,46 @@ void Map<Key,Value,Compare>::InsertFixUp(dzerzhinsky::lenin::MapNode<Key,Value> 
     }
     root_node_->is_black_ = true;
 }
+
+template <typename Key,typename Value,typename Compare>
+typename Map<Key,Value,Compare>::iterator Map<Key,Value,Compare>::Erase(const key_type &key){
+    dzerzhinsky::lenin::MapNode<Key,Value> *z_node = Search(key);
+    if(z_node == nullptr) throw new std::runtime_error("Key doesn't exist!");
+
+    if(element_size_ == 1){
+        delete root_node_;
+        this->Initialize(compare_func_);
+        return iterator();
+    }
+
+    dzerzhinsky::lenin::MapNode<Key,Value> *y_node = z_node;
+    bool y_original_is_black = y_node->is_black_;
+    dzerzhinsky::lenin::MapNode<Key,Value> *x_node = nullptr;
+    if(z_node->left_node_ == nil_node_){
+        x_node = z_node->right_node_;
+        Transplant(z_node,z_node->right_node_);
+    }else if(z_node->right_node_ == nil_node_){
+        x_node = z_node->left_node_;
+        Transplant(z_node,z_node->left_node_);
+    }else{
+        y_node = this->GetMinNode(z_node->right_node_);
+        y_original_is_black = y_node->is_black_;
+        x_node = y_node->right_node_;
+        if(y_node->parent_node_ != z_node){
+            Transplant(y_node,y_node->right_node_);
+            y_node->right_node_ = z_node->right_node_;
+            y_node->right_node_->parent_node_ = y_node;
+        }
+        Transplant(z_node,y_node);
+        y_node->left_node_ = z_node->left_node_;
+        y_node->left_node_->parent_node_ = y_node;
+        y_node->is_black_ = z_node->is_black_;
+    }
+    delete z_node;
+    --element_size_;
+    if(y_original_is_black) DeleteFixUp(x_node);
+}
+
 
 }
 #endif
