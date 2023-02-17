@@ -861,8 +861,9 @@ Map<Key,Value,Compare>::~Map<Key,Value,Compare>(){
 
 template <typename Key,typename Value,typename Compare>
 void Map<Key,Value,Compare>::Clear() noexcept{
+    const key_compare temp = compare_func_;
     this->ReleaseResource();
-    this->Initialize();
+    this->Initialize(temp);
 }
 
 template <typename Key,typename Value,typename Compare>
