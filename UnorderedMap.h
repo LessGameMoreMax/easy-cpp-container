@@ -159,6 +159,10 @@ void UnorderedMapList<Key,Value,Pred>::Erase(const Key &key){
     }
 }
 
+template <typename Key,typename Value>
+
+
+
 }
 
 }
@@ -173,13 +177,14 @@ public:
     typedef Hash                                     hasher;
     typedef Pred                                     key_equal;
 private:
-    number_type element_size_;
-    number_type bucket_count_;
-    hasher      hash_func_;
-    key_equal   equal_func_;
+    number_type        element_size_;
+    static number_type bucket_count_;
+    hasher             hash_func_;
+    key_equal          equal_func_;
     dzerzhinsky::lenin::UnorderedMapList<Key,Value,Pred> **buckets_pointer_;
 private:
     void Initialize(number_type,const hasher&,const key_equal&);
+    void ReleaseResource();
 public:
     explicit UnorderedMap(number_type bucket_count = 10, const hasher& hash_func = hasher(),
             const key_equal& equal_func = key_equal());
@@ -198,6 +203,9 @@ public:
     ~UnorderedMap();
 
     void Clear() noexcept;
+
+    iterator Begin(number_type bucket_index = 0) noexcept;
+    iterator End(number_type bucket_index = bucket_count_-1) noexcept;
 };
 
 template <typename Key,typename Value,typename Hash,typename Pred>
@@ -208,6 +216,16 @@ void UnorderedMap<Key,Value,Hash,Pred>::Initialize(number_type bucket_count,cons
     hash_func_ = hash_func;
     equal_func_ = equal_func;
     buckets_pointer_ = new dzerzhinsky::lenin::UnorderedMapList<Key,Value,Pred>*[bucket_count_];
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+void UnorderedMap<Key,Value,Hash,Pred>::ReleaseResource(){
+    for(number_type i = 0;i != bucket_count_; ++i)
+        if(buckets_pointer_[i] != nullptr) delete buckets_pointer_[i];
+    delete [] buckets_pointer_;
+    element_size_ = 0;
+    buckets_pointer_ = nullptr;
+    bucket_count_ = 0;
 }
 
 template <typename Key,typename Value,typename Hash,typename Pred>
@@ -284,8 +302,11 @@ UnorderedMap<Key,Value,Hash,Pred>::~UnorderedMap<Key,Value,Hash,Pred>(){
 
 template <typename Key,typename Value,typename Hash,typename Pred>
 void UnorderedMap<Key,Value,Hash,Pred>::Clear() noexcept{
+    number_type bucket_count = bucket_count_;
+    const hasher hash_func = hash_func_;
+    const key_equal equal_func = equal_func_; 
     this->ReleaseResource();
-    this->Initialize();
+    this->Initialize(bucket_count,hash_func,equal_func);
 }
 
 
