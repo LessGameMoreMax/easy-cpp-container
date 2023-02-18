@@ -390,17 +390,18 @@ template <typename Key,typename Value,typename Hash = std::hash<Key>,typename Pr
 class UnorderedMap{
     friend class dzerzhinsky::lenin::UnorderedMapIteratorPositive<Key,Value,Hash,Pred>;
 public:
-    typedef Key                                      key_type;
-    typedef Value                                    mapped_type;
-    typedef sablin::Pair<const key_type,mapped_type> value_type;
-    typedef size_t                                   number_type;
-    typedef Hash                                     hasher;
-    typedef Pred                                     key_equal;
+    typedef Key                                                    key_type;
+    typedef Value                                                  mapped_type;
+    typedef sablin::Pair<const key_type,mapped_type>               value_type;
+    typedef size_t                                                 number_type;
+    typedef Hash                                                   hasher;
+    typedef Pred                                                   key_equal;
+    typedef dzerzhinsky::UnorderedMapIterator<Key,Value,Hash,Pred> iterator;
 private:
-    number_type        element_size_;
-    static number_type bucket_count_;
-    hasher             hash_func_;
-    key_equal          equal_func_;
+    number_type element_size_;
+    number_type bucket_count_;
+    hasher      hash_func_;
+    key_equal   equal_func_;
     dzerzhinsky::lenin::UnorderedMapList<Key,Value,Pred> **buckets_pointer_;
 private:
     void Initialize(number_type,const hasher&,const key_equal&);
@@ -426,7 +427,8 @@ public:
     void Clear() noexcept;
 
     iterator Begin(number_type bucket_index = 0) noexcept;
-    iterator End(number_type bucket_index = bucket_count_-1) noexcept;
+    iterator End() noexcept;
+    iterator End(number_type) noexcept;
 
     number_type BucketCount() const noexcept; 
 };
@@ -538,11 +540,49 @@ void UnorderedMap<Key,Value,Hash,Pred>::Clear() noexcept{
     this->Initialize(bucket_count,hash_func,equal_func);
 }
 
-
 template <typename Key,typename Value,typename Hash,typename Pred>
 typename UnorderedMap<Key,Value,Hash,Pred>::number_type UnorderedMap<Key,Value,Hash,Pred>::BucketCount() const noexcept{
     return bucket_count_;
 }
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+typename UnorderedMap<Key,Value,Hash,Pred>::iterator UnorderedMap<Key,Value,Hash,Pred>::Begin(number_type bucket_index) noexcept{
+    if(buckets_pointer_ == nullptr) throw new std::runtime_error("NULL Buckets!");
+    if(bucket_index >= bucket_count_) throw new std::runtime_error("Wrong Bucket!");
+    dzerzhinsky::UnorderedMapIterator<Key,Value,Hash,Pred> temp;
+    temp.unordered_map_iterator_pointer_ = new dzerzhinsky::lenin::UnorderedMapIteratorPositive<Key,Value,Hash,Pred>(this);
+    for(number_type i = bucket_index; i != bucket_count_; ++i){
+        dzerzhinsky::lenin::UnorderedMapListNode<Key,Value> temp_node_pointer = GetBucketBeginNode(i);
+        if(temp_node_pointer != nullptr){
+            temp.unordered_map_iterator_pointer_->set_bucket_index(i);
+            temp.unordered_map_iterator_pointer_->set_node_pointer(temp_node_pointer);
+            return temp; } }
+    return temp;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+typename UnorderedMap<Key,Value,Hash,Pred>::iterator UnorderedMap<Key,Value,Hash,Pred>::End() noexcept{
+    return End(bucket_count_ - 1);
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+typename UnorderedMap<Key,Value,Hash,Pred>::iterator UnorderedMap<Key,Value,Hash,Pred>::End(number_type bucket_index) noexcept{
+    if(buckets_pointer_ == nullptr) throw new std::runtime_error("NULL Buckets!");
+    if(bucket_index >= bucket_count_) throw new std::runtime_error("Wrong Bucket!");
+    dzerzhinsky::UnorderedMapIterator<Key,Value,Hash,Pred> temp;
+    temp.unordered_map_iterator_pointer_ = new dzerzhinsky::lenin::UnorderedMapIteratorPositive<Key,Value,Hash,Pred>(this);
+    if(bucket_index == bucket_count_ - 1) return temp;
+    for(number_type i = bucket_index + 1; i != bucket_count_; ++i){
+        dzerzhinsky::lenin::UnorderedMapListNode<Key,Value> temp_node_pointer = GetBucketBeginNode(i);
+        if(temp_node_pointer != nullptr){
+            temp.unordered_map_iterator_pointer_->set_bucket_index(i);
+            temp.unordered_map_iterator_pointer_->set_node_pointer(temp_node_pointer);
+            return temp;
+        }
+    }
+    return temp;
+}
+
 
 
 }
