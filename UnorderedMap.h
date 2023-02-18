@@ -159,8 +159,52 @@ void UnorderedMapList<Key,Value,Pred>::Erase(const Key &key){
     }
 }
 
-template <typename Key,typename Value>
+template <typename Key,typename Value,typename Hash,typename Pred>
+class UnorderedMapIteratorPositive{
+private:
+    UnorderedMapListNode<Key,Value>   *node_pointer_;
+    UnorderedMap<Key,Value,Hash,Pred> *unordered_map_pointer_;   
+    size_t                            bucket_index_;  
+public:
+    UnorderedMapIteratorPositive(UnorderedMap<Key,Value,Hash,Pred>*);
+    UnorderedMapIteratorPositive(const UnorderedMapIteratorPositive&) = default;
+    UnorderedMapIteratorPositive& operator=(const UnorderedMapIteratorPositive&) = default;
+    UnorderedMapIteratorPositive& operator=(UnorderedMapIteratorPositive&) = default;
+    ~UnorderedMapIteratorPositive();
+    
+    void set_node_pointer(UnorderedMapListNode<Key,Value>*);
+    UnorderedMapListNode<Key,Value>* get_node_pointer() const;
+    size_t get_bucket_index() const;
 
+    void StepNext();
+};
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+UnorderedMapIteratorPositive<Key,Value,Hash,Pred>::UnorderedMapIteratorPositive(UnorderedMap<Key,Value,Hash,Pred> *unordered_map_pointer){
+    unordered_map_pointer_ = unordered_map_pointer;
+    bucket_index_ = unordered_map_pointer_->BucketCount() - 1;
+    node_pointer_ = nullptr;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+void UnorderedMapIteratorPositive<Key,Value,Hash,Pred>::set_node_pointer(UnorderedMapListNode<Key,Value> *node_pointer){
+    node_pointer_ = node_pointer;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+UnorderedMapListNode<Key,Value>* UnorderedMapIteratorPositive<Key,Value,Hash,Pred>::get_node_pointer() const{
+    return node_pointer_;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+size_t UnorderedMapIteratorPositive<Key,Value,Hash,Pred>::get_bucket_index() const{
+    return bucket_index_;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+void UnorderedMapIteratorPositive<Key,Value,Hash,Pred>::StepNext(){
+    if
+}
 
 
 }
@@ -169,6 +213,7 @@ template <typename Key,typename Value>
 
 template <typename Key,typename Value,typename Hash = std::hash<Key>,typename Pred = sablin::EqualTo<Key>>
 class UnorderedMap{
+    friend class dzerzhinsky::lenin::UnorderedMapIteratorPositive<Key,Value,Hash,Pred>;
 public:
     typedef Key                                      key_type;
     typedef Value                                    mapped_type;
@@ -185,6 +230,7 @@ private:
 private:
     void Initialize(number_type,const hasher&,const key_equal&);
     void ReleaseResource();
+    dzerzhinsky::lenin::UnorderedMapListNode<Key,Value>* GetBucketBeginNode(number_type) const;
 public:
     explicit UnorderedMap(number_type bucket_count = 10, const hasher& hash_func = hasher(),
             const key_equal& equal_func = key_equal());
@@ -206,6 +252,8 @@ public:
 
     iterator Begin(number_type bucket_index = 0) noexcept;
     iterator End(number_type bucket_index = bucket_count_-1) noexcept;
+
+    number_type BucketCount() const noexcept; 
 };
 
 template <typename Key,typename Value,typename Hash,typename Pred>
@@ -226,6 +274,12 @@ void UnorderedMap<Key,Value,Hash,Pred>::ReleaseResource(){
     element_size_ = 0;
     buckets_pointer_ = nullptr;
     bucket_count_ = 0;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+dzerzhinsky::lenin::UnorderedMapListNode<Key,Value>* UnorderedMap<Key,Value,Hash,Pred>::GetBucketBeginNode(number_type bucket_index) const{
+    if(buckets_pointer_[bucket_index] == nullptr) return nullptr;
+    return buckets_pointer_[bucket_index]->get_head_pointer();
 }
 
 template <typename Key,typename Value,typename Hash,typename Pred>
@@ -307,6 +361,12 @@ void UnorderedMap<Key,Value,Hash,Pred>::Clear() noexcept{
     const key_equal equal_func = equal_func_; 
     this->ReleaseResource();
     this->Initialize(bucket_count,hash_func,equal_func);
+}
+
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+typename UnorderedMap<Key,Value,Hash,Pred>::number_type UnorderedMap<Key,Value,Hash,Pred>::BucketCount() const noexcept{
+    return bucket_count_;
 }
 
 
