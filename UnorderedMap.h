@@ -66,7 +66,7 @@ public:
     bool Add(const Key&,Value&);
     bool Add(Key&&,Value&&);
     UnorderedMapListNode<Key,Value>* Find(const Key&);
-    void Erase(const Key&);
+    bool Erase(const Key&);
 };
 
 template <typename Key,typename Value,typename Pred>
@@ -140,15 +140,15 @@ UnorderedMapListNode<Key,Value>* UnorderedMapList<Key,Value,Pred>::Find(const Ke
 }
 
 template <typename Key,typename Value,typename Pred>
-void UnorderedMapList<Key,Value,Pred>::Erase(const Key &key){
-    if(head_pointer_ == nullptr) return;
+bool UnorderedMapList<Key,Value,Pred>::Erase(const Key &key){
+    if(head_pointer_ == nullptr) return false;
     UnorderedMapListNode<Key,Value> *temp_pointer = head_pointer_;
     while(temp_pointer->next_node_ != nullptr){
         if(equal_func_(temp_pointer->next_node_->element_pointer_->first,key)){
             UnorderedMapListNode<Key,Value> *temp_next_pointer = temp_pointer->next_node_;
             temp_pointer->next_node_ = temp_next_pointer->next_node_;
             delete temp_next_pointer;
-            return;
+            return true;
         }
         temp_pointer = temp_pointer->next_node_;
     }
@@ -156,7 +156,9 @@ void UnorderedMapList<Key,Value,Pred>::Erase(const Key &key){
         temp_pointer = head_pointer_;
         head_pointer_ = head_pointer_->next_node_;
         delete temp_pointer;
+        return true;
     }
+    return false;
 }
 
 template <typename Key,typename Value,typename Hash,typename Pred>
@@ -367,7 +369,7 @@ Pair<Key,Value>* UnorderedMapIterator<Key,Value,Hash,Pred>::operator->() const{
 }
 
 template <typename Key,typename Value,typename Hash,typename Pred>
-bool operator==(const UnorderedMapIterator<Key,Value,Hash,Pred> &lhs,UnorderedMapIterator<Key,Value,Hash,Pred> &rhs){
+bool operator==(const UnorderedMapIterator<Key,Value,Hash,Pred> &lhs,const UnorderedMapIterator<Key,Value,Hash,Pred> &rhs){
     if(lhs.unordered_map_iterator_pointer_ != nullptr && rhs.unordered_map_iterator_pointer_ != nullptr){
         return lhs.unordered_map_iterator_pointer_->get_bucket_index()==rhs.unordered_map_iterator_pointer_->get_bucket_index()
                     && lhs.unordered_map_iterator_pointer_->get_node_pointer()==rhs.unordered_map_iterator_pointer_->get_node_pointer();
@@ -467,6 +469,10 @@ public:
     template <typename Iterator>
     void Insert(Iterator,Iterator);
     void Insert(std::initializer_list<Pair<Key,Value>>);
+
+    bool Erase(const key_type&);
+    iterator Erase(const iterator&);
+    iterator Erase(const iterator&,const iterator&);
 };
 
 template <typename Key,typename Value,typename Hash,typename Pred>
@@ -590,7 +596,7 @@ typename UnorderedMap<Key,Value,Hash,Pred>::iterator UnorderedMap<Key,Value,Hash
     dzerzhinsky::UnorderedMapIterator<Key,Value,Hash,Pred> temp;
     temp.unordered_map_iterator_pointer_ = new dzerzhinsky::lenin::UnorderedMapIteratorPositive<Key,Value,Hash,Pred>(this);
     for(number_type i = bucket_index; i != bucket_count_; ++i){
-        dzerzhinsky::lenin::UnorderedMapListNode<Key,Value> temp_node_pointer = GetBucketBeginNode(i);
+        dzerzhinsky::lenin::UnorderedMapListNode<Key,Value>* temp_node_pointer = GetBucketBeginNode(i);
         if(temp_node_pointer != nullptr){
             temp.unordered_map_iterator_pointer_->set_bucket_index(i);
             temp.unordered_map_iterator_pointer_->set_node_pointer(temp_node_pointer);
@@ -611,7 +617,7 @@ typename UnorderedMap<Key,Value,Hash,Pred>::iterator UnorderedMap<Key,Value,Hash
     temp.unordered_map_iterator_pointer_ = new dzerzhinsky::lenin::UnorderedMapIteratorPositive<Key,Value,Hash,Pred>(this);
     if(bucket_index == bucket_count_ - 1) return temp;
     for(number_type i = bucket_index + 1; i != bucket_count_; ++i){
-        dzerzhinsky::lenin::UnorderedMapListNode<Key,Value> temp_node_pointer = GetBucketBeginNode(i);
+        dzerzhinsky::lenin::UnorderedMapListNode<Key,Value>* temp_node_pointer = GetBucketBeginNode(i);
         if(temp_node_pointer != nullptr){
             temp.unordered_map_iterator_pointer_->set_bucket_index(i);
             temp.unordered_map_iterator_pointer_->set_node_pointer(temp_node_pointer);
@@ -701,9 +707,53 @@ typename UnorderedMap<Key,Value,Hash,Pred>::iterator UnorderedMap<Key,Value,Hash
     return temp;
 }
 
+template <typename Key,typename Value,typename Hash,typename Pred>
+bool UnorderedMap<Key,Value,Hash,Pred>::Erase(const key_type &key){
+    for(number_type i = 0; i != bucket_count_; ++i){
+        if(buckets_pointer_[i] != nullptr && buckets_pointer_[i]->Erase(key)){
+            --element_size_;
+            if(buckets_pointer_[i]->get_head_pointer() == nullptr){
+                delete buckets_pointer_[i];
+                buckets_pointer_[i] = nullptr;
+            }
+            return true;
+        }
+    } 
+    return false;
+}
 
+template <typename Key,typename Value,typename Hash,typename Pred>
+typename UnorderedMap<Key,Value,Hash,Pred>::iterator UnorderedMap<Key,Value,Hash,Pred>::Erase(const iterator &iterator_target){
+    auto iterator_result = iterator_target;  
+    ++iterator_result;
+    buckets_pointer_[iterator_target.unordered_map_iterator_pointer_->get_bucket_index()]->Erase(iterator_target->first);
+    auto pointer = buckets_pointer_[iterator_target.unordered_map_iterator_pointer_->get_bucket_index()]->get_head_pointer();
+    if(pointer == nullptr){
+        delete buckets_pointer_[iterator_target.unordered_map_iterator_pointer_->get_bucket_index()];
+        buckets_pointer_[iterator_target.unordered_map_iterator_pointer_->get_bucket_index()] = nullptr;
+    }
+    --element_size_;
+    return iterator_result;
+}
 
-
+template <typename Key,typename Value,typename Hash,typename Pred>
+typename UnorderedMap<Key,Value,Hash,Pred>::iterator UnorderedMap<Key,Value,Hash,Pred>::Erase(const iterator &iterator_first,
+        const iterator &iterator_second){
+    auto iterator_temp = iterator_first;
+    while(iterator_temp != iterator_second){
+        auto iterator_temp_temp = iterator_temp;
+        ++iterator_temp_temp;
+        buckets_pointer_[iterator_temp.unordered_map_iterator_pointer_->get_bucket_index()]->Erase(iterator_temp->first);
+        auto pointer = buckets_pointer_[iterator_temp.unordered_map_iterator_pointer_->get_bucket_index()]->get_head_pointer();
+        if(pointer == nullptr){
+            delete buckets_pointer_[iterator_temp.unordered_map_iterator_pointer_->get_bucket_index()];
+            buckets_pointer_[iterator_temp.unordered_map_iterator_pointer_->get_bucket_index()] = nullptr;
+        }
+        iterator_temp = iterator_temp_temp;
+        --element_size_;
+    }
+    return iterator_second;
+}
 
 }
 #endif

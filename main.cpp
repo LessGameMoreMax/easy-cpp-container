@@ -13,10 +13,9 @@ int main(){
     my_map.Insert(Pair<int,string>(5,"5"));
     my_map.Insert(Pair<int,string>(6,"6"));
     my_map.Insert(Pair<int,string>(3,"100"));
-    my_map.Insert(Pair<int,string>(377,"377"));
-    my_map.Insert(Pair<int,string>(77,"77"));
-    my_map.Insert(Pair<int,string>(7,"7"));
-
+    
+    auto iter = my_map.Erase(my_map.Begin(2));
+    cout << iter->first << iter->second << endl;
     my_map.PrintAll();
     return 0;
 }
