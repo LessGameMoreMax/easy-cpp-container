@@ -166,7 +166,8 @@ private:
     UnorderedMap<Key,Value,Hash,Pred> *unordered_map_pointer_;   
     size_t                            bucket_index_;  
 public:
-    UnorderedMapIteratorPositive(UnorderedMap<Key,Value,Hash,Pred>*);
+    UnorderedMapIteratorPositive(UnorderedMap<Key,Value,Hash,Pred>*,UnorderedMapListNode<Key,Value> *node_poitner = nullptr,
+            size_t bucket_index = -1);
     UnorderedMapIteratorPositive(const UnorderedMapIteratorPositive&) = default;
     UnorderedMapIteratorPositive& operator=(const UnorderedMapIteratorPositive&) = default;
     UnorderedMapIteratorPositive& operator=(UnorderedMapIteratorPositive&) = default;
@@ -175,15 +176,23 @@ public:
     void set_node_pointer(UnorderedMapListNode<Key,Value>*);
     UnorderedMapListNode<Key,Value>* get_node_pointer() const;
     size_t get_bucket_index() const;
+    void set_bucket_index(size_t);
+    UnorderedMap<Key,Value,Hash,Pred>* get_unordered_map_pointer() const;
 
     void StepNext();
 };
 
 template <typename Key,typename Value,typename Hash,typename Pred>
-UnorderedMapIteratorPositive<Key,Value,Hash,Pred>::UnorderedMapIteratorPositive(UnorderedMap<Key,Value,Hash,Pred> *unordered_map_pointer){
+UnorderedMapIteratorPositive<Key,Value,Hash,Pred>::UnorderedMapIteratorPositive(UnorderedMap<Key,Value,Hash,Pred> *unordered_map_pointer,
+        UnorderedMapListNode<Key,Value> *node_pointer,size_t bucket_index){
     unordered_map_pointer_ = unordered_map_pointer;
-    bucket_index_ = unordered_map_pointer_->BucketCount() - 1;
-    node_pointer_ = nullptr;
+    if(bucket_index == -1){
+        node_pointer_ = nullptr;
+        bucket_index_ = unordered_map_pointer_->BucketCount() - 1;
+        return;
+    }
+    node_pointer_ = node_pointer;
+    bucket_index_ = bucket_index;
 }
 
 template <typename Key,typename Value,typename Hash,typename Pred>
@@ -197,17 +206,183 @@ UnorderedMapListNode<Key,Value>* UnorderedMapIteratorPositive<Key,Value,Hash,Pre
 }
 
 template <typename Key,typename Value,typename Hash,typename Pred>
+void UnorderedMapIteratorPositive<Key,Value,Hash,Pred>::set_bucket_index(size_t bucket_index){
+    bucket_index_ = bucket_index;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
 size_t UnorderedMapIteratorPositive<Key,Value,Hash,Pred>::get_bucket_index() const{
     return bucket_index_;
 }
 
 template <typename Key,typename Value,typename Hash,typename Pred>
+UnorderedMap<Key,Value,Hash,Pred>* UnorderedMapIteratorPositive<Key,Value,Hash,Pred>::get_unordered_map_pointer() const{
+    return unordered_map_pointer_;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
 void UnorderedMapIteratorPositive<Key,Value,Hash,Pred>::StepNext(){
-    if
+    if(node_pointer_ == nullptr) throw new std::runtime_error("StepNext Wrong!");
+    node_pointer_ = node_pointer_->next_node_;
+    if(node_pointer_ != nullptr) return;
+    for(size_t i = bucket_index_ + 1;i != unordered_map_pointer_->BucketCount(); ++i){
+        auto temp_pointer = unordered_map_pointer_->GetBucketBeginNode(i);
+        if(temp_pointer != nullptr){
+           node_pointer_ = temp_pointer;
+           bucket_index_ = i;
+           return;
+        }
+    }
+    bucket_index_ = unordered_map_pointer_->BucketCount() - 1;
+}
 }
 
+template <typename Key,typename Value,typename Hash,typename Pred>
+class UnorderedMapIterator{
+    friend class UnorderedMap<Key,Value,Hash,Pred>;
+    template <typename K,typename V,typename H,typename P>
+    friend bool operator==(const UnorderedMapIterator<K,V,H,P>&,const UnorderedMapIterator<K,V,H,P>&);
+    template <typename K,typename V,typename H,typename P>
+    friend bool operator!=(const UnorderedMapIterator<K,V,H,P>&,const UnorderedMapIterator<K,V,H,P>&);
+private:
+    lenin::UnorderedMapIteratorPositive<Key,Value,Hash,Pred> *unordered_map_iterator_pointer_;
+public:
+    UnorderedMapIterator();
+    UnorderedMapIterator(const UnorderedMapIterator&);
+    UnorderedMapIterator(UnorderedMapIterator&&);
+    UnorderedMapIterator& operator=(const UnorderedMapIterator&);
+    UnorderedMapIterator& operator=(UnorderedMapIterator&&);
+    ~UnorderedMapIterator();
 
+    UnorderedMapIterator<Key,Value,Hash,Pred>& operator++();
+    UnorderedMapIterator<Key,Value,Hash,Pred> operator++(int);
+
+    Pair<Key,Value>& operator*() const;
+    Pair<Key,Value>* operator->() const;
+};
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+UnorderedMapIterator<Key,Value,Hash,Pred>::UnorderedMapIterator():
+    unordered_map_iterator_pointer_(nullptr){}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+UnorderedMapIterator<Key,Value,Hash,Pred>::UnorderedMapIterator(const UnorderedMapIterator &another){
+    if(another.unordered_map_iterator_pointer_ == nullptr){
+        unordered_map_iterator_pointer_ = nullptr;
+        return;
+    }
+    unordered_map_iterator_pointer_ = 
+        new lenin::UnorderedMapIteratorPositive<Key,Value,Hash,Pred>(another.unordered_map_iterator_pointer_->get_unordered_map_pointer(),
+                another.unordered_map_iterator_pointer_->get_node_pointer(),another.unordered_map_iterator_pointer_->get_bucket_index());
 }
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+UnorderedMapIterator<Key,Value,Hash,Pred>::UnorderedMapIterator(UnorderedMapIterator &&another){
+    if(another.unordered_map_iterator_pointer_ == nullptr){
+        unordered_map_iterator_pointer_ = nullptr;
+        return;
+    }
+    unordered_map_iterator_pointer_ = another.unordered_map_iterator_pointer_;
+    another.unordered_map_iterator_pointer_ = nullptr;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+UnorderedMapIterator<Key,Value,Hash,Pred>& UnorderedMapIterator<Key,Value,Hash,Pred>::operator=(const UnorderedMapIterator &another){
+    if(this == &another) return *this;
+    if(unordered_map_iterator_pointer_ != nullptr) delete unordered_map_iterator_pointer_;
+    if(another.unordered_map_iterator_pointer_ == nullptr){
+        unordered_map_iterator_pointer_ = nullptr;
+        return *this;
+    }
+
+    unordered_map_iterator_pointer_ = 
+        new lenin::UnorderedMapIteratorPositive<Key,Value,Hash,Pred>(another.unordered_map_iterator_pointer_->get_unordered_map_pointer(),
+                another.unordered_map_iterator_pointer_->get_node_pointer(),another.unordered_map_iterator_pointer_->get_bucket_index());
+    return *this;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+UnorderedMapIterator<Key,Value,Hash,Pred>& UnorderedMapIterator<Key,Value,Hash,Pred>::operator=(UnorderedMapIterator &&another){
+    if(this == &another) return *this;
+    if(unordered_map_iterator_pointer_ != nullptr) delete unordered_map_iterator_pointer_;
+    unordered_map_iterator_pointer_ = another.unordered_map_iterator_pointer_;
+    another.unordered_map_iterator_pointer_ = nullptr;
+    return *this;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+UnorderedMapIterator<Key,Value,Hash,Pred>::~UnorderedMapIterator(){
+    if(unordered_map_iterator_pointer_ != nullptr)
+        delete unordered_map_iterator_pointer_;
+    unordered_map_iterator_pointer_ = nullptr;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+UnorderedMapIterator<Key,Value,Hash,Pred>& UnorderedMapIterator<Key,Value,Hash,Pred>::operator++(){
+    if(unordered_map_iterator_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator!");
+    unordered_map_iterator_pointer_->StepNext();
+    return *this;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+UnorderedMapIterator<Key,Value,Hash,Pred> UnorderedMapIterator<Key,Value,Hash,Pred>::operator++(int){
+    if(unordered_map_iterator_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator");
+    UnorderedMapIterator temp(*this);
+    unordered_map_iterator_pointer_->StepNext();
+    return temp;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+Pair<Key,Value>& UnorderedMapIterator<Key,Value,Hash,Pred>::operator*() const{
+    if(unordered_map_iterator_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator!");
+    lenin::UnorderedMapListNode<Key,Value> *temp_node_pointer = unordered_map_iterator_pointer_->get_node_pointer();
+    if(temp_node_pointer == nullptr){
+        if(unordered_map_iterator_pointer_->get_unordered_map_pointer()->BucketCount()
+                ==(unordered_map_iterator_pointer_->get_bucket_index()+1)){
+                    throw new std::runtime_error("Iterator Beyond!");
+                }else{
+                    throw new std::runtime_error("NULL Node!");
+                }
+    }
+    return *(temp_node_pointer->element_pointer_);
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+Pair<Key,Value>* UnorderedMapIterator<Key,Value,Hash,Pred>::operator->() const{
+    if(unordered_map_iterator_pointer_ == nullptr)
+        throw new std::runtime_error("NULL Iterator!");
+    lenin::UnorderedMapListNode<Key,Value> *temp_node_pointer = unordered_map_iterator_pointer_->get_node_pointer();
+    if(temp_node_pointer == nullptr){
+        if(unordered_map_iterator_pointer_->get_unordered_map_pointer()->BucketCount()
+                ==(unordered_map_iterator_pointer_->get_bucket_index()+1)){
+                    throw new std::runtime_error("Iterator Beyond!");
+                }else{
+                    throw new std::runtime_error("NULL Node!");
+                }
+    }
+    return temp_node_pointer->element_pointer_;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+bool operator==(const UnorderedMapIterator<Key,Value,Hash,Pred> &lhs,UnorderedMapIterator<Key,Value,Hash,Pred> &rhs){
+    if(lhs.unordered_map_iterator_pointer_ != nullptr && rhs.unordered_map_iterator_pointer_ != nullptr){
+        return lhs.unordered_map_iterator_pointer_->get_bucket_index()==rhs.unordered_map_iterator_pointer_->get_bucket_index()
+                    && lhs.unordered_map_iterator_pointer_->get_node_pointer()==rhs.unordered_map_iterator_pointer_->get_node_pointer();
+    }else if(lhs.unordered_map_iterator_pointer_ == nullptr && rhs.unordered_map_iterator_pointer_ == nullptr){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+bool operator!=(const UnorderedMapIterator<Key,Value,Hash,Pred> &lhs,const UnorderedMapIterator<Key,Value,Hash,Pred> &rhs){
+    return !(lhs == rhs);
+}
+
 
 }
 
