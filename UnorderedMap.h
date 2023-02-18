@@ -63,9 +63,9 @@ public:
     ~UnorderedMapList();
 
     UnorderedMapListNode<Key,Value>* get_head_pointer() const;
-    void Add(const Key&,Value&);
-    void Add(Key&&,Value&&);
-    Value* Find(const Key&);
+    bool Add(const Key&,Value&);
+    bool Add(Key&&,Value&&);
+    UnorderedMapListNode<Key,Value>* Find(const Key&);
     void Erase(const Key&);
 };
 
@@ -85,55 +85,55 @@ UnorderedMapListNode<Key,Value>* UnorderedMapList<Key,Value,Pred>::get_head_poin
 }
 
 template <typename Key,typename Value,typename Pred>
-void UnorderedMapList<Key,Value,Pred>::Add(const Key &key,Value &value){
+bool UnorderedMapList<Key,Value,Pred>::Add(const Key &key,Value &value){
     if(head_pointer_ == nullptr){
         head_pointer_ = new UnorderedMapListNode<Key,Value>(key,value);
-        return;
+        return true;
     }
     UnorderedMapListNode<Key,Value> *temp_pointer = head_pointer_;
     while(temp_pointer->next_node_ != nullptr){
        if(equal_func_(temp_pointer->element_pointer_->first,key)){
            temp_pointer->element_pointer_->second = value;
-           return;
+           return false;
        } 
        temp_pointer = temp_pointer->next_node_;
     }
     if(equal_func_(temp_pointer->element_pointer_->first,key)){
         temp_pointer->element_pointer_->second = value;
-        return;
+        return false;
     }
     temp_pointer->next_node_ = new UnorderedMapListNode<Key,Value>(key,value);
-    return;
+    return true;
 }
 
 template <typename Key,typename Value,typename Pred>
-void UnorderedMapList<Key,Value,Pred>::Add(Key &&key,Value &&value){
+bool UnorderedMapList<Key,Value,Pred>::Add(Key &&key,Value &&value){
     if(head_pointer_ == nullptr){
         head_pointer_ = new UnorderedMapListNode<Key,Value>(std::move(key),std::move(value));
-        return;
+        return true;
     }
     UnorderedMapListNode<Key,Value> *temp_pointer = head_pointer_;
     while(temp_pointer->next_node_ != nullptr){
        if(equal_func_(temp_pointer->element_pointer_->first,key)){
            temp_pointer->element_pointer_->second = std::move(value);
-           return;
+           return false;
        } 
        temp_pointer = temp_pointer->next_node_;
     }
     if(equal_func_(temp_pointer->element_pointer_->first,key)){
         temp_pointer->element_pointer_->second = std::move(value);
-        return;
+        return false;
     }
     temp_pointer->next_node_ = new UnorderedMapListNode<Key,Value>(std::move(key),std::move(value));
-    return;
+    return true;
 }
 
 template <typename Key,typename Value,typename Pred>
-Value* UnorderedMapList<Key,Value,Pred>::Find(const Key &key){
+UnorderedMapListNode<Key,Value>* UnorderedMapList<Key,Value,Pred>::Find(const Key &key){
     UnorderedMapListNode<Key,Value> *temp_pointer = head_pointer_;
     while(temp_pointer != nullptr){
         if(equal_func_(temp_pointer->element_pointer_->first,key))
-            return &temp_pointer->element_pointer_->second;
+            return temp_pointer;
         temp_pointer = temp_pointer->next_node_;
     }
     return nullptr;
@@ -171,7 +171,7 @@ public:
     UnorderedMapIteratorPositive(const UnorderedMapIteratorPositive&) = default;
     UnorderedMapIteratorPositive& operator=(const UnorderedMapIteratorPositive&) = default;
     UnorderedMapIteratorPositive& operator=(UnorderedMapIteratorPositive&) = default;
-    ~UnorderedMapIteratorPositive();
+    ~UnorderedMapIteratorPositive() = default;
     
     void set_node_pointer(UnorderedMapListNode<Key,Value>*);
     UnorderedMapListNode<Key,Value>* get_node_pointer() const;
@@ -397,6 +397,28 @@ public:
     typedef Hash                                                   hasher;
     typedef Pred                                                   key_equal;
     typedef dzerzhinsky::UnorderedMapIterator<Key,Value,Hash,Pred> iterator;
+
+    //Debug--------------------------
+    void PrintAll(){
+        std::cout << "Element_Size is : " << element_size_ << std::endl;
+        std::cout << "Bucket_Count is : " << bucket_count_ << std::endl;
+        for(size_t i = 0;i != bucket_count_; ++i){
+            std::cout << "Bucket Index : " << i << std::endl;
+            if(buckets_pointer_[i] == nullptr){
+                std::cout << "NULL" << std::endl;
+                continue;
+            }
+            auto temp_pointer = buckets_pointer_[i]->get_head_pointer();
+            while(temp_pointer != nullptr){
+                std::cout << "First: " << temp_pointer->element_pointer_->first;
+                std::cout << " Second: " << temp_pointer->element_pointer_->second;
+                std::cout << "---";
+                temp_pointer = temp_pointer->next_node_;
+            }
+            std::cout << std::endl;
+        }
+    }
+    //Debug--------------------------
 private:
     number_type element_size_;
     number_type bucket_count_;
@@ -431,6 +453,20 @@ public:
     iterator End(number_type) noexcept;
 
     number_type BucketCount() const noexcept; 
+
+    bool IsEmpty() const;
+    number_type Size() const;
+
+    iterator Find(const key_type&);
+
+    mapped_type& At(const key_type&);
+    const mapped_type& At(const key_type&) const;
+
+    iterator Insert(const Pair<Key,Value>&);
+    iterator Insert(Pair<Key,Value>&&);
+    template <typename Iterator>
+    void Insert(Iterator,Iterator);
+    void Insert(std::initializer_list<Pair<Key,Value>>);
 };
 
 template <typename Key,typename Value,typename Hash,typename Pred>
@@ -441,6 +477,8 @@ void UnorderedMap<Key,Value,Hash,Pred>::Initialize(number_type bucket_count,cons
     hash_func_ = hash_func;
     equal_func_ = equal_func;
     buckets_pointer_ = new dzerzhinsky::lenin::UnorderedMapList<Key,Value,Pred>*[bucket_count_];
+    for(number_type i = 0; i != bucket_count_; ++i)
+        buckets_pointer_[i] = nullptr;
 }
 
 template <typename Key,typename Value,typename Hash,typename Pred>
@@ -582,6 +620,88 @@ typename UnorderedMap<Key,Value,Hash,Pred>::iterator UnorderedMap<Key,Value,Hash
     }
     return temp;
 }
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+bool UnorderedMap<Key,Value,Hash,Pred>::IsEmpty() const{
+    return element_size_ == 0;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+typename UnorderedMap<Key,Value,Hash,Pred>::number_type UnorderedMap<Key,Value,Hash,Pred>::Size() const{
+    return element_size_;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+typename UnorderedMap<Key,Value,Hash,Pred>::iterator UnorderedMap<Key,Value,Hash,Pred>::Find(const key_type &key){
+    dzerzhinsky::UnorderedMapIterator<Key,Value,Hash,Pred> temp;
+    temp.unordered_map_iterator_pointer_ = new dzerzhinsky::lenin::UnorderedMapIteratorPositive<Key,Value,Hash,Pred>(this);
+    for(number_type i = 0; i != bucket_count_; ++i){
+        if(buckets_pointer_[i] != nullptr){
+            dzerzhinsky::lenin::UnorderedMapListNode<Key,Value> *temp_node = buckets_pointer_[i]->Find(key);
+            if(temp_node != nullptr){
+                temp.unordered_map_iterator_pointer_->set_bucket_index(i);
+                temp.unordered_map_iterator_pointer_->set_node_pointer(temp_node);
+                return temp;
+            }
+        }
+    }
+    return temp;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+typename UnorderedMap<Key,Value,Hash,Pred>::mapped_type& UnorderedMap<Key,Value,Hash,Pred>::At(const key_type &key){
+   auto iter = Find(key);
+   if(iter == End()) throw new std::runtime_error("No Such Key!");
+   return iter->second;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+const typename UnorderedMap<Key,Value,Hash,Pred>::mapped_type& UnorderedMap<Key,Value,Hash,Pred>::At(const key_type &key) const{
+   auto iter = Find(key);
+   if(iter == End()) throw new std::runtime_error("No Such Key!");
+   return iter->second;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+template <typename Iterator>
+void UnorderedMap<Key,Value,Hash,Pred>::Insert(Iterator iterator_first,Iterator iterator_second){
+    for(Iterator iterator_temp = iterator_first;iterator_temp != iterator_second; ++iterator_temp)
+        Insert(*iterator_temp);
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+void UnorderedMap<Key,Value,Hash,Pred>::Insert(std::initializer_list<Pair<Key,Value>> list){
+    number_type size = list.size();
+    if(size == 0) return;
+    for(number_type i = 0;i != size; ++i)
+        this->Insert(*(list.begin() + i));
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+typename UnorderedMap<Key,Value,Hash,Pred>::iterator UnorderedMap<Key,Value,Hash,Pred>::Insert(const Pair<Key,Value> &insert_pair){
+    number_type hash_index = hash_func_(insert_pair.first) % bucket_count_;
+    if(buckets_pointer_[hash_index] == nullptr)
+        buckets_pointer_[hash_index] = new dzerzhinsky::lenin::UnorderedMapList<Key,Value,Pred>();
+    element_size_ += buckets_pointer_[hash_index]->Add(insert_pair.first,insert_pair.second);
+    dzerzhinsky::UnorderedMapIterator<Key,Value,Hash,Pred> temp;
+    temp.unordered_map_iterator_pointer_ = new dzerzhinsky::lenin::UnorderedMapIteratorPositive<Key,Value,Hash,Pred>(this,
+            buckets_pointer_[hash_index]->Find(insert_pair.first),hash_index);
+    return temp;
+}
+
+template <typename Key,typename Value,typename Hash,typename Pred>
+typename UnorderedMap<Key,Value,Hash,Pred>::iterator UnorderedMap<Key,Value,Hash,Pred>::Insert(Pair<Key,Value> &&insert_pair){
+    number_type hash_index = hash_func_(insert_pair.first) % bucket_count_;
+    if(buckets_pointer_[hash_index] == nullptr)
+        buckets_pointer_[hash_index] = new dzerzhinsky::lenin::UnorderedMapList<Key,Value,Pred>();
+    element_size_ += buckets_pointer_[hash_index]->Add(std::move(insert_pair.first),std::move(insert_pair.second));
+    dzerzhinsky::UnorderedMapIterator<Key,Value,Hash,Pred> temp;
+    temp.unordered_map_iterator_pointer_ = new dzerzhinsky::lenin::UnorderedMapIteratorPositive<Key,Value,Hash,Pred>(this,
+            buckets_pointer_[hash_index]->Find(insert_pair.first),hash_index);
+    return temp;
+}
+
+
 
 
 
